@@ -1,4 +1,5 @@
 /target/
+.bench/
 **/*.rs.bk
 *.pdb
 .DS_Store

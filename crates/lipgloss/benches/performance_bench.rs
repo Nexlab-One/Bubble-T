@@ -31,6 +31,7 @@ fn benchmark_style_comparison(c: &mut Criterion) {
 }
 
 fn benchmark_render_performance(c: &mut Criterion) {
+    let plain_style = Style::new();
     let simple_style = Style::new().bold(true).foreground("red");
     let complex_style = Style::new()
         .bold(true)
@@ -42,6 +43,11 @@ fn benchmark_render_performance(c: &mut Criterion) {
         .margin(1, 2, 1, 2);
 
     let content = "Hello, World!\nThis is a test.\nWith multiple lines.";
+    let plain_content = "Plain unstyled terminal text without any formatting.";
+
+    c.bench_function("render_plain", |b| {
+        b.iter(|| black_box(plain_style.render(black_box(plain_content))))
+    });
 
     c.bench_function("render_simple", |b| {
         b.iter(|| black_box(simple_style.render(black_box(content))))
@@ -50,11 +56,21 @@ fn benchmark_render_performance(c: &mut Criterion) {
     c.bench_function("render_complex", |b| {
         b.iter(|| black_box(complex_style.render(black_box(content))))
     });
+}
 
-    // Note: render_optimized not yet implemented
-    // c.bench_function("render_optimized_complex", |b| {
-    //     b.iter(|| black_box(complex_style.render_optimized(black_box(content))))
-    // });
+fn benchmark_width_visible(c: &mut Criterion) {
+    use lipgloss::width_visible;
+
+    let plain = "Hello, World! This is plain text for width measurement.";
+    let styled = "\x1b[1m\x1b[31mStyled text with ANSI codes\x1b[0m";
+
+    c.bench_function("width_visible_plain", |b| {
+        b.iter(|| black_box(width_visible(black_box(plain))))
+    });
+
+    c.bench_function("width_visible_styled", |b| {
+        b.iter(|| black_box(width_visible(black_box(styled))))
+    });
 }
 
 fn benchmark_style_ranges(c: &mut Criterion) {
@@ -105,6 +121,7 @@ criterion_group!(
     benchmark_render_performance,
     benchmark_style_ranges,
     benchmark_dimension_validation,
-    benchmark_safe_repeat
+    benchmark_safe_repeat,
+    benchmark_width_visible
 );
 criterion_main!(benches);

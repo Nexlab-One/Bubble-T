@@ -91,8 +91,14 @@ pub fn validate_tab_width(value: i32) -> i32 {
 /// assert_eq!(result.len(), 10000); // Clamped to MAX_REPEAT_COUNT
 /// ```
 pub fn safe_repeat(ch: char, count: usize) -> String {
+    if count == 0 {
+        return String::new();
+    }
     let safe_count = count.min(MAX_REPEAT_COUNT);
-    ch.to_string().repeat(safe_count)
+    match ch {
+        ' ' => " ".repeat(safe_count),
+        _ => ch.to_string().repeat(safe_count),
+    }
 }
 
 /// Safely repeats a string with bounds checking to prevent memory exhaustion.
@@ -129,7 +135,6 @@ pub fn safe_str_repeat(s: &str, count: usize) -> String {
     // Calculate safe repeat count based on string length to prevent overflow
     let max_safe_count = MAX_REPEAT_COUNT / s.len().max(1);
     let safe_count = count.min(max_safe_count);
-
     s.repeat(safe_count)
 }
 

@@ -262,8 +262,17 @@ pub fn strip_ansi(s: &str) -> String {
 /// - [`width`] - For measuring strings without ANSI codes
 /// - [`strip_ansi`] - For removing ANSI codes without measuring
 pub fn width_visible(s: &str) -> usize {
-    let clean = strip_ansi(s);
-    UnicodeWidthStr::width(clean.as_str())
+    if !s.as_bytes().contains(&b'\x1b') {
+        UnicodeWidthStr::width(s)
+    } else {
+        UnicodeWidthStr::width(strip_ansi(s).as_str())
+    }
+}
+
+/// Alias for [`width_visible`] used in hot internal paths.
+#[inline]
+pub fn visible_width(s: &str) -> usize {
+    width_visible(s)
 }
 
 /// Splits text into lines, strips ANSI codes, and returns the maximum visible width.

@@ -28,6 +28,7 @@
 
 use crate::security::{MAX_ANSI_SEQ_LEN, safe_repeat};
 use crate::style::{Style, properties::*};
+use crate::utils::visible_width;
 
 #[allow(dead_code)]
 impl Style {
@@ -232,9 +233,85 @@ impl Style {
         truncated.join("\n")
     }
 
+    /// Word-wrap plain text (no ANSI sequences) on space boundaries.
+    fn word_wrap_plain(text: &str, width: usize) -> Vec<String> {
+        let tokens = Self::tokenize_spaces_plain(text);
+        if tokens.is_empty() {
+            return vec![text.to_string()];
+        }
+
+        let mut lines = Vec::new();
+        let mut current_line = String::new();
+        let mut current_width = 0usize;
+
+        for token in tokens {
+            let token_width = visible_width(&token);
+
+            if token_width > width {
+                if !current_line.is_empty() {
+                    lines.push(current_line);
+                }
+                let mut hard_wrapped = Self::hard_wrap_ansi_aware(&token, width);
+                if !hard_wrapped.is_empty() {
+                    current_line = hard_wrapped.pop().unwrap();
+                    lines.extend(hard_wrapped);
+                    current_width = visible_width(&current_line);
+                } else {
+                    current_line = String::new();
+                    current_width = 0;
+                }
+                continue;
+            }
+
+            if !current_line.is_empty() && current_width + token_width > width {
+                lines.push(current_line);
+                current_line = token;
+                current_width = token_width;
+            } else {
+                current_line.push_str(&token);
+                current_width += token_width;
+            }
+        }
+
+        if !current_line.is_empty() {
+            lines.push(current_line);
+        }
+
+        if lines.is_empty() {
+            vec![String::new()]
+        } else {
+            lines
+        }
+    }
+
+    /// Tokenize on ASCII spaces when no ANSI escapes are present.
+    fn tokenize_spaces_plain(s: &str) -> Vec<String> {
+        let mut tokens: Vec<String> = Vec::new();
+        let mut current = String::new();
+        for ch in s.chars() {
+            if ch == ' ' {
+                if !current.is_empty() {
+                    tokens.push(current);
+                    current = String::new();
+                }
+                tokens.push(" ".to_string());
+            } else {
+                current.push(ch);
+            }
+        }
+        if !current.is_empty() {
+            tokens.push(current);
+        }
+        tokens
+    }
+
     pub fn word_wrap_ansi_aware(text: &str, width: usize) -> Vec<String> {
         if width == 0 {
             return vec![String::new()];
+        }
+
+        if !text.as_bytes().contains(&b'\x1b') {
+            return Self::word_wrap_plain(text, width);
         }
 
         let mut lines = Vec::new();
@@ -249,7 +326,7 @@ impl Style {
         let mut current_width = 0;
 
         for token in tokens {
-            let token_width = crate::width_visible(&token);
+            let token_width = visible_width(&token);
 
             if token_width > width {
                 // Token is too long, must be hard-wrapped
@@ -260,7 +337,7 @@ impl Style {
                 if !hard_wrapped.is_empty() {
                     current_line = hard_wrapped.pop().unwrap();
                     lines.extend(hard_wrapped);
-                    current_width = crate::width_visible(&current_line);
+                    current_width = visible_width(&current_line);
                 } else {
                     current_line = String::new();
                     current_width = 0;
@@ -293,9 +370,43 @@ impl Style {
     ///
     /// This is a hard wrap function that breaks at character boundaries, not word
     /// boundaries. For word-aware wrapping, consider using a different approach.
+    /// Hard-wrap plain text (no ANSI) at character boundaries.
+    fn hard_wrap_plain(text: &str, width: usize) -> Vec<String> {
+        let mut lines = Vec::new();
+        let mut current_line = String::new();
+        let mut current_width = 0usize;
+
+        for ch in text.chars() {
+            let char_width = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+
+            if current_width + char_width > width && current_width > 0 {
+                lines.push(current_line);
+                current_line = String::new();
+                current_width = 0;
+            }
+
+            current_line.push(ch);
+            current_width += char_width;
+        }
+
+        if !current_line.is_empty() {
+            lines.push(current_line);
+        }
+
+        if lines.is_empty() {
+            vec![String::new()]
+        } else {
+            lines
+        }
+    }
+
     pub fn hard_wrap_ansi_aware(text: &str, width: usize) -> Vec<String> {
         if width == 0 {
             return vec![String::new()];
+        }
+
+        if !text.as_bytes().contains(&b'\x1b') {
+            return Self::hard_wrap_plain(text, width);
         }
 
         let mut lines = Vec::new();
@@ -393,6 +504,10 @@ impl Style {
     /// algorithms that need to respect certain character boundaries while preserving
     /// text styling.
     pub fn tokenize_with_breakpoints(s: &str, break_chars: &[char]) -> Vec<String> {
+        if break_chars == [' '] && !s.as_bytes().contains(&b'\x1b') {
+            return Self::tokenize_spaces_plain(s);
+        }
+
         let mut tokens: Vec<String> = Vec::new();
         let mut current = String::new();
         let mut chars = s.chars().peekable();

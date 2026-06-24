@@ -4,8 +4,9 @@
 //! into terminal-ready output with appropriate ANSI escape sequences for colors,
 //! attributes, borders, spacing, and layout.
 
+use crate::color::Color;
 use crate::color::parse_hex_rgba;
-use crate::renderer::{ColorProfileKind, default_renderer};
+use crate::renderer::{ColorProfileKind, color_profile};
 use crate::security::{safe_repeat, safe_str_repeat};
 use crate::style::{Style, properties::*};
 use crate::width_visible;
@@ -48,14 +49,13 @@ impl Style {
     /// This method efficiently builds ANSI sequences by only including codes for
     /// properties that have been explicitly set on the style, minimizing output size.
     pub fn render(&self, s: &str) -> String {
+        if self.is_input_passthrough(s) {
+            return s.to_string();
+        }
+
         // Layout pass: borders, padding, wrapping, and size constraints applied
         // to plain text before any colorization happens.
         let rendered = self.prepare_block(s);
-
-        // Build ANSI SGR sequence from current style settings for text content.
-        let eff = self.r.clone().unwrap_or_else(|| default_renderer().clone());
-        let profile = eff.color_profile();
-        let sgr = self.build_text_sgr(profile);
 
         let target_width = self.get_width();
         let target_height = self.get_height();
@@ -73,21 +73,136 @@ impl Style {
             || self.is_set(MARGIN_BOTTOM_KEY)
             || self.is_set(MARGIN_LEFT_KEY);
 
-        // If no SGR codes, no width/height constraints, no borders, and no margins, we're done.
-        if sgr.is_empty() && target_width <= 0 && target_height <= 0 && !has_borders && !has_margins
+        let needs_text_styling = self.has_text_styling_keys();
+
+        // Fast path: plain text with no layout, borders, margins, or styling.
+        if !needs_text_styling
+            && target_width <= 0
+            && target_height <= 0
+            && !has_borders
+            && !has_margins
         {
             return rendered;
         }
 
+        let margin_needs_color = has_margins
+            && self.is_set(MARGIN_BACKGROUND_KEY)
+            && self.get_margin_background().is_some();
+        let needs_profile = needs_text_styling || has_borders || margin_needs_color;
+        let profile = if needs_profile {
+            match &self.r {
+                Some(renderer) => renderer.color_profile(),
+                None => color_profile(),
+            }
+        } else {
+            ColorProfileKind::NoColor
+        };
+
+        let sgr_prefix = if needs_text_styling {
+            self.build_text_sgr_prefix(profile)
+        } else {
+            String::new()
+        };
+
         // LAYOUT FIRST: build the aligned canvas, then borders, then styling.
         let mut final_lines = self.apply_layout(&rendered, target_width, target_height);
-        final_lines = self.apply_borders(final_lines);
-        final_lines = self.apply_text_sgr_styling(final_lines, &sgr);
+        final_lines = self.apply_borders(final_lines, profile);
+        final_lines = self.apply_text_sgr_styling(final_lines, &sgr_prefix);
 
-        let result = final_lines.join("\n");
+        let result = Self::join_lines(&final_lines);
 
         // Apply all margins as final step (matches Go implementation)
-        self.apply_margins(&result)
+        self.apply_margins(&result, profile)
+    }
+
+    /// Returns true when text attributes or colors are configured.
+    ///
+    /// Used to skip renderer/SGR work on the plain-text fast path.
+    fn has_text_styling_keys(&self) -> bool {
+        const ATTRS: [(u32, PropKey); 7] = [
+            (ATTR_BOLD, BOLD_KEY),
+            (ATTR_FAINT, FAINT_KEY),
+            (ATTR_ITALIC, ITALIC_KEY),
+            (ATTR_UNDERLINE, UNDERLINE_KEY),
+            (ATTR_BLINK, BLINK_KEY),
+            (ATTR_REVERSE, REVERSE_KEY),
+            (ATTR_STRIKETHROUGH, STRIKETHROUGH_KEY),
+        ];
+        for (attr, key) in ATTRS {
+            if self.get_attr(attr) && self.is_set(key) {
+                return true;
+            }
+        }
+        self.is_set(FOREGROUND_KEY) || self.is_set(BACKGROUND_KEY)
+    }
+
+    /// True when the input string can be returned without any transformation.
+    fn is_input_passthrough(&self, s: &str) -> bool {
+        if !self.value.is_empty() {
+            return false;
+        }
+        if self.has_text_styling_keys() {
+            return false;
+        }
+        if self.get_width() > 0
+            || self.get_height() > 0
+            || self.get_max_height() > 0
+            || self.get_max_width() > 0
+        {
+            return false;
+        }
+        if self.needs_padding() || self.needs_size_constraints() {
+            return false;
+        }
+        if (self.get_border_top()
+            || self.get_border_right()
+            || self.get_border_bottom()
+            || self.get_border_left())
+            && self.is_set(BORDER_STYLE_KEY)
+        {
+            return false;
+        }
+        if self.is_set(MARGIN_TOP_KEY)
+            || self.is_set(MARGIN_RIGHT_KEY)
+            || self.is_set(MARGIN_BOTTOM_KEY)
+            || self.is_set(MARGIN_LEFT_KEY)
+        {
+            return false;
+        }
+        if self.get_attr(ATTR_INLINE) && self.is_set(INLINE_KEY) {
+            return false;
+        }
+        if self.is_set(TRANSFORM_KEY) && self.transform.is_some() {
+            return false;
+        }
+        if s.contains('\r') {
+            return false;
+        }
+        let tabw = self.get_tab_width();
+        if tabw == 0 && s.contains('\t') {
+            return false;
+        }
+        if tabw > 0 && s.contains('\t') {
+            return false;
+        }
+        true
+    }
+
+    /// Wraps a space run with a background SGR code without running the full render pipeline.
+    fn margin_background_spaces(spaces: &str, bg_sgr: &str) -> String {
+        if bg_sgr.is_empty() {
+            spaces.to_string()
+        } else {
+            format!("\x1b[{}m{}\x1b[0m", bg_sgr, spaces)
+        }
+    }
+
+    /// Resolves the margin background to a bare SGR parameter string (no ESC prefix).
+    fn margin_background_sgr(bg: &Color, profile: ColorProfileKind) -> String {
+        Style::new()
+            .background(bg.clone())
+            .background_sgr(profile)
+            .unwrap_or_default()
     }
 
     /// Applies the layout-affecting transforms that operate on plain text.
@@ -97,14 +212,11 @@ impl Style {
     /// and vertical padding. The result is the text canvas prior to colorization.
     fn prepare_block(&self, s: &str) -> String {
         // Content to render: prefer internal value if set
-        let content = if !self.value.is_empty() {
+        let mut rendered = if !self.value.is_empty() {
             self.value.clone()
         } else {
             s.to_string()
         };
-
-        // First, build the base rendered string before colorizing: borders, padding, etc.
-        let mut rendered = content.clone();
 
         // Normalize newlines: convert CRLF/CR to LF
         if rendered.contains('\r') {
@@ -126,16 +238,33 @@ impl Style {
 
         // Tabs handling: default 4 spaces, 0 removes, -1 keeps as-is, n>0 replaces with n spaces
         let tabw = self.get_tab_width();
-        if tabw == 0 {
+        if tabw == 0 && rendered.contains('\t') {
             rendered = rendered.replace('\t', "");
-        } else if tabw > 0 {
+        } else if tabw > 0 && rendered.contains('\t') {
             let spaces = safe_repeat(' ', tabw as usize);
             rendered = rendered.replace('\t', &spaces);
         } // tabw < 0 => keep tabs as-is
 
-        rendered = self.apply_size_constraints(rendered);
-        rendered = self.apply_padding(rendered);
+        if self.needs_size_constraints() {
+            rendered = self.apply_size_constraints(rendered);
+        }
+        if self.needs_padding() {
+            rendered = self.apply_padding(rendered);
+        }
         rendered
+    }
+
+    /// True when max-height, max-width, or width-driven wrapping may apply.
+    fn needs_size_constraints(&self) -> bool {
+        self.get_max_height() > 0 || self.get_max_width() > 0 || self.get_width() > 0
+    }
+
+    /// True when any padding side is explicitly configured.
+    fn needs_padding(&self) -> bool {
+        self.is_set(PADDING_TOP_KEY)
+            || self.is_set(PADDING_BOTTOM_KEY)
+            || self.is_set(PADDING_LEFT_KEY)
+            || self.is_set(PADDING_RIGHT_KEY)
     }
 
     /// Applies max-height/max-width truncation and width-driven word wrapping.
@@ -281,10 +410,8 @@ impl Style {
             format!("{}", base + idx) // standard colors
         } else if idx <= 15 {
             format!("{}", bright_base + idx) // bright colors
-        } else if (base..=base + 7).contains(&idx) {
-            format!("{}", idx) // already a standard ANSI code
-        } else if (base + 60..=base + 67).contains(&idx) {
-            format!("{}", idx) // already a bright ANSI code
+        } else if (base..=base + 7).contains(&idx) || (base + 60..=base + 67).contains(&idx) {
+            format!("{}", idx) // already a standard or bright ANSI code
         } else {
             format!("{}", default)
         }
@@ -320,14 +447,12 @@ impl Style {
         }
     }
 
-    /// Builds the SGR parameter list for the text body (attributes + colors).
+    /// Builds the full ESC SGR prefix (`\x1b[...]m`) for text body styling.
     ///
-    /// NOTE: Borders and margins are handled separately, after layout constraints,
+    /// Borders and margins are handled separately, after layout constraints,
     /// to match the Go implementation.
-    fn build_text_sgr(&self, profile: ColorProfileKind) -> Vec<String> {
-        let mut sgr: Vec<String> = Vec::new();
-
-        // Text attributes: (attribute bit, property key, SGR code)
+    fn build_text_sgr_prefix(&self, profile: ColorProfileKind) -> String {
+        let mut codes = String::new();
         const ATTRS: [(u32, PropKey, &str); 7] = [
             (ATTR_BOLD, BOLD_KEY, "1"),
             (ATTR_FAINT, FAINT_KEY, "2"),
@@ -339,18 +464,56 @@ impl Style {
         ];
         for (attr, key, code) in ATTRS {
             if self.get_attr(attr) && self.is_set(key) {
-                sgr.push(code.to_string());
+                if !codes.is_empty() {
+                    codes.push(';');
+                }
+                codes.push_str(code);
             }
         }
-
         if let Some(code) = self.foreground_sgr(profile) {
-            sgr.push(code);
+            if !codes.is_empty() {
+                codes.push(';');
+            }
+            codes.push_str(&code);
         }
         if let Some(code) = self.background_sgr(profile) {
-            sgr.push(code);
+            if !codes.is_empty() {
+                codes.push(';');
+            }
+            codes.push_str(&code);
         }
+        if codes.is_empty() {
+            String::new()
+        } else {
+            format!("\x1b[{}m", codes)
+        }
+    }
 
-        sgr
+    /// Wraps styled content with a pre-built SGR prefix and reset suffix.
+    fn wrap_with_sgr_prefix(prefix: &str, content: &str) -> String {
+        const SUFFIX: &str = "\x1b[0m";
+        let mut out = String::with_capacity(prefix.len() + content.len() + SUFFIX.len());
+        out.push_str(prefix);
+        out.push_str(content);
+        out.push_str(SUFFIX);
+        out
+    }
+
+    /// Returns leading/trailing ASCII space padding bounds for layout lines.
+    fn ascii_space_padding_bounds(line: &str) -> (usize, usize) {
+        if !line.is_ascii() {
+            let leading = line.chars().take_while(|&c| c == ' ').count();
+            let trailing = line.chars().rev().take_while(|&c| c == ' ').count();
+            return (leading, trailing);
+        }
+        let bytes = line.as_bytes();
+        let leading = bytes.iter().position(|&b| b != b' ').unwrap_or(bytes.len());
+        let trailing = bytes
+            .iter()
+            .rev()
+            .position(|&b| b != b' ')
+            .unwrap_or(bytes.len());
+        (leading, trailing)
     }
 
     /// Resolves the foreground text color to an SGR code for the active profile.
@@ -429,13 +592,12 @@ impl Style {
     ///
     /// Each line is padded to `target_width` according to horizontal alignment, and
     /// the block is padded to `target_height` according to vertical alignment.
-    fn apply_layout(
-        &self,
-        rendered: &str,
-        target_width: i32,
-        target_height: i32,
-    ) -> Vec<String> {
+    fn apply_layout(&self, rendered: &str, target_width: i32, target_height: i32) -> Vec<String> {
         let lines: Vec<&str> = rendered.split('\n').collect();
+        if target_width <= 0 && target_height <= 0 {
+            return lines.into_iter().map(str::to_string).collect();
+        }
+
         let mut final_lines = Vec::with_capacity(lines.len());
 
         // LAYOUT FIRST: Create full-width canvas with alignment padding
@@ -639,7 +801,7 @@ impl Style {
         left_glyph: &str,
         right_glyph: &str,
         w: usize,
-    ) -> String {
+    ) -> Vec<String> {
         let reset = "\x1b[0m";
         let left_part_base = if self.get_border_left() {
             if left_sgr.is_empty() {
@@ -663,7 +825,8 @@ impl Style {
         for l in final_lines {
             let lw = width_visible(l);
             let pad = w.saturating_sub(lw);
-            let mut line_buf = String::with_capacity(w + 4);
+            let mut line_buf =
+                String::with_capacity(left_part_base.len() + l.len() + pad + right_part_base.len());
             line_buf.push_str(&left_part_base);
             line_buf.push_str(l);
             if pad > 0 {
@@ -672,7 +835,7 @@ impl Style {
             line_buf.push_str(&right_part_base);
             out_lines.push(line_buf);
         }
-        out_lines.join("\n")
+        out_lines
     }
 
     /// Wraps the laid-out canvas in border glyphs when a border style is set.
@@ -680,7 +843,7 @@ impl Style {
     /// Per-side colors fall back to the combined foreground/background tokens when
     /// no explicit per-side color is configured. Lines are padded to the widest
     /// visible line so the right border aligns.
-    fn apply_borders(&self, final_lines: Vec<String>) -> Vec<String> {
+    fn apply_borders(&self, final_lines: Vec<String>, profile: ColorProfileKind) -> Vec<String> {
         let render_borders = (self.get_border_top()
             || self.get_border_right()
             || self.get_border_bottom()
@@ -696,9 +859,6 @@ impl Style {
         for l in &final_lines {
             w = w.max(width_visible(l));
         }
-        // Determine effective renderer/profile
-        let eff = self.r.clone().unwrap_or_else(|| default_renderer().clone());
-        let profile = eff.color_profile();
 
         let [top_sgr, right_sgr, bottom_sgr, left_sgr] = self.border_side_sgrs(profile);
 
@@ -725,22 +885,17 @@ impl Style {
             w,
         );
 
-        // Combine the parts and update final_lines with bordered content
-        let bordered_content = if !top.is_empty() && !bot.is_empty() {
-            format!("{}\n{}\n{}", top, mid, bot)
-        } else if !top.is_empty() {
-            format!("{}\n{}", top, mid)
-        } else if !bot.is_empty() {
-            format!("{}\n{}", mid, bot)
-        } else {
-            mid
-        };
-
-        // Replace final_lines with the bordered content
-        bordered_content
-            .split('\n')
-            .map(|s| s.to_string())
-            .collect()
+        let mut bordered_lines = Vec::with_capacity(
+            usize::from(self.get_border_top()) + mid.len() + usize::from(self.get_border_bottom()),
+        );
+        if !top.is_empty() {
+            bordered_lines.push(top);
+        }
+        bordered_lines.extend(mid);
+        if !bot.is_empty() {
+            bordered_lines.push(bot);
+        }
+        bordered_lines
     }
 
     /// Applies the computed SGR codes to a laid-out canvas.
@@ -748,13 +903,12 @@ impl Style {
     /// When a background color or styled whitespace is active the whole line is
     /// wrapped; otherwise only the non-whitespace span is colored so that
     /// alignment padding stays uncolored.
-    fn apply_text_sgr_styling(&self, final_lines: Vec<String>, sgr: &[String]) -> Vec<String> {
-        if sgr.is_empty() {
+    fn apply_text_sgr_styling(&self, final_lines: Vec<String>, sgr_prefix: &str) -> Vec<String> {
+        if sgr_prefix.is_empty() {
             return final_lines;
         }
 
-        let prefix = format!("\x1b[{}m", sgr.join(";"));
-        let suffix = "\x1b[0m";
+        const SUFFIX: &str = "\x1b[0m";
 
         let style_whole_line = self.get_background().is_some()
             || self.get_color_whitespace()
@@ -762,18 +916,15 @@ impl Style {
             || (self.get_strikethrough() && self.get_strikethrough_spaces());
 
         if style_whole_line {
-            // For background colors or styled spaces, style the entire canvas
             final_lines
                 .into_iter()
-                .map(|line| format!("{}{}{}", prefix, line, suffix))
+                .map(|line| Self::wrap_with_sgr_prefix(sgr_prefix, &line))
                 .collect()
         } else {
-            // For foreground-only styling, style only non-whitespace parts
             final_lines
                 .into_iter()
                 .map(|line| {
-                    let leading_spaces = line.chars().take_while(|&c| c == ' ').count();
-                    let trailing_spaces = line.chars().rev().take_while(|&c| c == ' ').count();
+                    let (leading_spaces, trailing_spaces) = Self::ascii_space_padding_bounds(&line);
                     let content_start = leading_spaces;
                     let content_end = line.len().saturating_sub(trailing_spaces);
 
@@ -783,7 +934,15 @@ impl Style {
                         let lead = &line[..content_start];
                         let mid = &line[content_start..content_end];
                         let trail = &line[content_end..];
-                        format!("{}{}{}{}{}", lead, prefix, mid, suffix, trail)
+                        let mut out = String::with_capacity(
+                            lead.len() + sgr_prefix.len() + mid.len() + SUFFIX.len() + trail.len(),
+                        );
+                        out.push_str(lead);
+                        out.push_str(sgr_prefix);
+                        out.push_str(mid);
+                        out.push_str(SUFFIX);
+                        out.push_str(trail);
+                        out
                     }
                 })
                 .collect()
@@ -792,7 +951,7 @@ impl Style {
 
     /// Apply margins to a fully-rendered block, using margin background color if set.
     /// This matches the Go implementation's applyMargins function.
-    fn apply_margins(&self, block: &str) -> String {
+    fn apply_margins(&self, block: &str, profile: ColorProfileKind) -> String {
         let top_margin = if self.is_set(MARGIN_TOP_KEY) {
             self.get_margin_top().max(0) as usize
         } else {
@@ -829,18 +988,17 @@ impl Style {
         };
 
         // Pre-render margin strings once to avoid repeated render calls
-        let (left_margin_str, right_margin_str) = if margin_bg_color.is_some() {
-            let mut margin_style = Style::new();
-            if let Some(ref bg) = margin_bg_color {
-                margin_style = margin_style.background(bg.clone());
-            }
+        let margin_bg_sgr = margin_bg_color
+            .as_ref()
+            .map(|bg| Self::margin_background_sgr(bg, profile));
+        let (left_margin_str, right_margin_str) = if let Some(ref bg_sgr) = margin_bg_sgr {
             let left = if left_margin > 0 {
-                margin_style.render(&safe_repeat(' ', left_margin.min(1000)))
+                Self::margin_background_spaces(&safe_repeat(' ', left_margin.min(1000)), bg_sgr)
             } else {
                 String::new()
             };
             let right = if right_margin > 0 {
-                margin_style.render(&safe_repeat(' ', right_margin.min(1000)))
+                Self::margin_background_spaces(&safe_repeat(' ', right_margin.min(1000)), bg_sgr)
             } else {
                 String::new()
             };
@@ -871,14 +1029,12 @@ impl Style {
         // Apply top margin
         if top_margin > 0 {
             let block_width = lines.iter().map(|l| width_visible(l)).max().unwrap_or(0);
-            let empty_line = if block_width > 0 && margin_bg_color.is_some() {
-                let mut margin_style = Style::new();
-                if let Some(ref bg) = margin_bg_color {
-                    margin_style = margin_style.background(bg.clone());
+            let empty_line = if block_width > 0 {
+                if let Some(ref bg_sgr) = margin_bg_sgr {
+                    Self::margin_background_spaces(&safe_repeat(' ', block_width.min(1000)), bg_sgr)
+                } else {
+                    safe_repeat(' ', block_width.min(1000))
                 }
-                margin_style.render(&safe_repeat(' ', block_width.min(1000)))
-            } else if block_width > 0 {
-                safe_repeat(' ', block_width.min(1000))
             } else {
                 String::new()
             };
@@ -894,14 +1050,12 @@ impl Style {
         // Apply bottom margin
         if bottom_margin > 0 {
             let block_width = result.iter().map(|l| width_visible(l)).max().unwrap_or(0);
-            let empty_line = if block_width > 0 && margin_bg_color.is_some() {
-                let mut margin_style = Style::new();
-                if let Some(ref bg) = margin_bg_color {
-                    margin_style = margin_style.background(bg.clone());
+            let empty_line = if block_width > 0 {
+                if let Some(ref bg_sgr) = margin_bg_sgr {
+                    Self::margin_background_spaces(&safe_repeat(' ', block_width.min(1000)), bg_sgr)
+                } else {
+                    safe_repeat(' ', block_width.min(1000))
                 }
-                margin_style.render(&safe_repeat(' ', block_width.min(1000)))
-            } else if block_width > 0 {
-                safe_repeat(' ', block_width.min(1000))
             } else {
                 String::new()
             };
@@ -912,7 +1066,26 @@ impl Style {
             }
         }
 
-        result.join("\n")
+        Self::join_lines(&result)
+    }
+
+    /// Joins lines with a single pre-sized buffer.
+    fn join_lines(lines: &[String]) -> String {
+        if lines.is_empty() {
+            return String::new();
+        }
+        if lines.len() == 1 {
+            return lines[0].clone();
+        }
+        let total_len = lines.iter().map(String::len).sum::<usize>() + lines.len() - 1;
+        let mut out = String::with_capacity(total_len);
+        for (i, line) in lines.iter().enumerate() {
+            if i > 0 {
+                out.push('\n');
+            }
+            out.push_str(line);
+        }
+        out
     }
 
     /// Applies this style to a string as a convenience wrapper around `render()`.
