@@ -7,20 +7,20 @@
 //! - Tab to accept the current suggestion
 //! - Esc/Enter/Ctrl+C to quit
 //!
-//! Components: `bubbletea-widgets::{textinput, key, help}`.
+//! Components: `bubble-t-widgets::{textinput, key, help}`.
 //!
 //! Note: If typing appears to be ignored, ensure your workspace resolves to a
-//! single instance of the `bubbletea-rs` crate. Because messages are carried
+//! single instance of the `bubble-t` crate. Because messages are carried
 //! via `Box<dyn Any>`, downcasting (e.g., to `KeyMsg`) requires the exact same
 //! concrete type from the same crate instance. Multiple versions/paths of the
 //! crate at once will prevent `downcast_ref::<KeyMsg>()` from matching in
 //! widget code. See this example's README “Troubleshooting” for details.
 
-use bubbletea_rs::command::batch;
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::{help, key, textinput};
+use bubble_t::command::batch;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::{help, key, textinput};
 use lipgloss_extras::lipgloss::{Color, Style};
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT};
+use reqwest::header::{ACCEPT, HeaderMap, HeaderValue};
 use serde::Deserialize;
 
 const REPOS_URL: &str = "https://api.github.com/orgs/charmbracelet/repos";
@@ -211,7 +211,7 @@ fn fetch_repos() -> Cmd {
         // Add a UA as GitHub may reject requests without it
         headers.insert(
             "User-Agent",
-            HeaderValue::from_static("bubbletea-rs-autocomplete-example"),
+            HeaderValue::from_static("bubble-t-autocomplete-example"),
         );
 
         let client = match reqwest::Client::builder().default_headers(headers).build() {

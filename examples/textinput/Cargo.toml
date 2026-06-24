@@ -1,14 +1,14 @@
 [package]
 name = "textinput-example"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [[bin]]
 name = "textinput"
 path = "main.rs"
 
 [dependencies]
-bubbletea-rs = { path = "../.." }
-tokio = { version = "1.0", features = ["full"] }
-bubbletea-widgets = "0.1.12"
-crossterm = "0.29"
+bubble-t = { workspace = true }
+tokio = { workspace = true }
+bubble-t-widgets = { workspace = true }
+crossterm = { workspace = true }

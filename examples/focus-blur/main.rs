@@ -1,5 +1,5 @@
-use bubbletea_rs::{quit, BlurMsg, Cmd, FocusMsg, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t::{BlurMsg, Cmd, FocusMsg, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 
 /// Key bindings for the focus-blur example
 #[derive(Debug)]

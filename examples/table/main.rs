@@ -1,7 +1,7 @@
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
-use lipgloss_extras::lipgloss::{normal_border, Color, Style};
-use lipgloss_extras::table::{Table, HEADER_ROW};
+use lipgloss_extras::lipgloss::{Color, Style, normal_border};
+use lipgloss_extras::table::{HEADER_ROW, Table};
 
 // Synthetic message used to trigger the initial render immediately after startup.
 #[derive(Debug)]
@@ -661,7 +661,7 @@ impl Model for AppModel {
             match key_msg.key {
                 KeyCode::Char('q') => return Some(quit()),
                 KeyCode::Char('c') if key_msg.modifiers.contains(KeyModifiers::CONTROL) => {
-                    return Some(quit())
+                    return Some(quit());
                 }
                 KeyCode::Esc => {
                     self.focused = !self.focused;
@@ -690,10 +690,8 @@ impl Model for AppModel {
                         self.cursor = 0;
                     }
                 }
-                KeyCode::End => {
-                    if self.focused {
-                        self.cursor = self.rows.len().saturating_sub(1);
-                    }
+                KeyCode::End if self.focused => {
+                    self.cursor = self.rows.len().saturating_sub(1);
                 }
                 _ => {}
             }
@@ -788,10 +786,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if let Err(err) = program.run().await {
         match err {
-            bubbletea_rs::Error::Interrupted => {
+            bubble_t::Error::Interrupted => {
                 std::process::exit(130);
             }
-            bubbletea_rs::Error::ProgramKilled => {
+            bubble_t::Error::ProgramKilled => {
                 std::process::exit(1);
             }
             _ => {

@@ -1,4 +1,4 @@
-use bubbletea_rs::{BlurMsg, Error, FocusMsg, InputHandler, KeyMsg, MouseMsg, WindowSizeMsg};
+use bubble_t::{BlurMsg, Error, FocusMsg, InputHandler, KeyMsg, MouseMsg, WindowSizeMsg};
 use crossterm::event::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };

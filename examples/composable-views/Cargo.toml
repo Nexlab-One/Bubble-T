@@ -1,15 +1,15 @@
 [package]
 name = "composable-views"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [[bin]]
 name = "composable-views"
 path = "main.rs"
 
 [dependencies]
-bubbletea-rs = { path = "../.." }
-crossterm = "0.29"
-tokio = { version = "1", features = ["full"] }
-bubbletea-widgets = "0.1.12"
-lipgloss-extras = { version = "0.1.1", features = ["full"] }
+bubble-t = { workspace = true }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+bubble-t-widgets = { workspace = true }
+lipgloss-extras = { workspace = true, features = ["full"] }

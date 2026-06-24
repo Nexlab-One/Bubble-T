@@ -2,7 +2,7 @@
 
 <img width="1200" src="./exec.gif" />
 
-An example demonstrating how to execute external programs (like text editors) from within a bubbletea-rs application while properly handling terminal control.
+An example demonstrating how to execute external programs (like text editors) from within a bubble-t application while properly handling terminal control.
 
 ## Features
 
@@ -40,7 +40,7 @@ EDITOR=nano cargo run --example exec
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{enter_alt_screen, exit_alt_screen, quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{enter_alt_screen, exit_alt_screen, quit, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - `enter_alt_screen()`: Switch to alternate screen buffer
@@ -49,7 +49,7 @@ use bubbletea_rs::{enter_alt_screen, exit_alt_screen, quit, Cmd, KeyMsg, Model, 
 
 **Widget System:**
 ```rust
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t_widgets::key::{new_binding, with_help, with_keys_str, Binding};
 ```
 
 - `Binding`: Structured key binding with help text

@@ -8,7 +8,7 @@
 //! - Simple integer model state
 //! - Automatic program termination
 
-use bubbletea_rs::{quit, suspend, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, suspend};
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::time::Duration;
 

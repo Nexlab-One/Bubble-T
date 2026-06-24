@@ -47,7 +47,7 @@ Note: A, B, C appear simultaneously (concurrent batch), then Z appears after the
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{batch, println, quit, sequence, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{batch, println, quit, sequence, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - `sequence(Vec<Cmd>)`: Run commands one after another

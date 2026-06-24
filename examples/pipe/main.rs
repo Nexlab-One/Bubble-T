@@ -1,11 +1,11 @@
-//! Pipe Example (Rust, using bubbletea-widgets and lipgloss)
+//! Pipe Example (Rust, using bubble-t-widgets and lipgloss)
 //!
 //! Port of Bubble Tea's `pipe` example. This demonstrates how to pipe data into
 //! a Bubble Tea application and handle non-TTY input scenarios.
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
-use bubbletea_widgets::textinput;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
+use bubble_t_widgets::textinput;
 use std::io::{self, Read};
 
 /// Key bindings for the pipe example
@@ -67,14 +67,13 @@ impl Model for PipeModel {
 
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
         // Handle quit keys first
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keys.quit.matches(key_msg)
+        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>()
+            && (self.keys.quit.matches(key_msg)
                 || self.keys.quit_alt.matches(key_msg)
-                || self.keys.quit_enter.matches(key_msg)
-            {
-                self.quitting = true;
-                return Some(quit());
-            }
+                || self.keys.quit_enter.matches(key_msg))
+        {
+            self.quitting = true;
+            return Some(quit());
         }
 
         self.user_input.update(msg)
@@ -94,14 +93,9 @@ impl Model for PipeModel {
 
 /// Read piped input from stdin, similar to the Go version
 fn read_piped_input() -> Result<String, io::Error> {
-    // Check if stdin is a pipe/redirected input
-    use std::os::unix::io::AsRawFd;
-    let stdin_fd = io::stdin().as_raw_fd();
+    use std::io::IsTerminal;
 
-    // Use libc to check if stdin is a TTY
-    let is_tty = unsafe { libc::isatty(stdin_fd) } == 1;
-
-    if is_tty {
+    if io::stdin().is_terminal() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "No piped input detected",

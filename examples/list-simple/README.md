@@ -2,7 +2,7 @@
 
 <img width="1200" src="./list-simple.gif" />
 
-A demonstration of basic list navigation using the bubbletea-widgets list component, showing cursor navigation, pagination, and custom item rendering with a clean, numbered interface.
+A demonstration of basic list navigation using the bubble-t-widgets list component, showing cursor navigation, pagination, and custom item rendering with a clean, numbered interface.
 
 ## Features
 
@@ -43,13 +43,13 @@ cargo run --example list-simple
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{Cmd, KeyMsg, Model, Msg, WindowSizeMsg};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, WindowSizeMsg};
 ```
 
 **List Widget System:**
 ```rust
-use bubbletea_widgets::list::{Item, ItemDelegate, Model as List};
-use bubbletea_widgets::paginator::Type as PaginatorType;
+use bubble_t_widgets::list::{Item, ItemDelegate, Model as List};
+use bubble_t_widgets::paginator::Type as PaginatorType;
 ```
 
 - `List<T>`: Generic list widget for any item type
@@ -58,7 +58,7 @@ use bubbletea_widgets::paginator::Type as PaginatorType;
 
 **Key Binding Integration:**
 ```rust
-use bubbletea_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding};
+use bubble_t_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding};
 ```
 
 ### Architecture Walkthrough
@@ -315,7 +315,7 @@ struct SearchResult {
 ## Files
 
 - `main.rs` — Complete simple list implementation using widgets
-- `Cargo.toml` — Dependencies including bubbletea-widgets
+- `Cargo.toml` — Dependencies including bubble-t-widgets
 - `list-simple.gif` — Demo showing navigation and pagination
 - `README.md` — This documentation
 

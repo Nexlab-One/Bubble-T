@@ -1,16 +1,16 @@
 //! Package Manager Example
 //!
-//! A package installer simulation demonstrating advanced bubbletea-rs patterns:
+//! A package installer simulation demonstrating advanced bubble-t patterns:
 //!
 //! ## Key Components Demonstrated:
 //! - **Custom Spinner**: Hand-built spinner component with lipgloss styling
-//! - **Animated Progress Bar**: Custom progress with gradient rendering using bubbletea-rs::gradient
+//! - **Animated Progress Bar**: Custom progress with gradient rendering using bubble_t::gradient
 //! - **Dynamic List Building**: Maintaining completed items in model state (not printf)
 //! - **Complex Layout**: Width-aware text truncation and gap calculation
 //! - **Multi-Command Coordination**: Using `batch()` for concurrent commands
 //! - **Timed Simulations**: Using `tick()` for realistic delays
 //!
-//! ## bubbletea-rs Patterns:
+//! ## bubble-t Patterns:
 //! - Model state management for UI lists
 //! - Custom message types for app-specific events
 //! - Combining multiple visual components in a single view
@@ -21,9 +21,9 @@
 //!
 //! Usage: cargo run
 
-// bubbletea-rs core imports for MVU pattern
-use bubbletea_rs::gradient::gradient_filled_segment; // Built-in gradient helper for progress bars
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+// bubble-t core imports for MVU pattern
+use bubble_t::gradient::gradient_filled_segment; // Built-in gradient helper for progress bars
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, batch, quit, tick};
 
 // crossterm for keyboard input handling
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -32,14 +32,14 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style};
 
 // Standard library imports for randomization and timing
+use rand::RngExt;
 use rand::prelude::SliceRandom;
-use rand::Rng;
 use std::time::Duration;
 
 // =============================================================================
 // CUSTOM MESSAGE TYPES
 // =============================================================================
-// In bubbletea-rs, you define custom message types to communicate between
+// In bubble-t, you define custom message types to communicate between
 // async commands and your model. Each message type represents a specific
 // event that can occur in your application.
 
@@ -61,13 +61,13 @@ pub struct ProgressFrameMsg;
 // =============================================================================
 // CUSTOM SPINNER COMPONENT
 // =============================================================================
-// This demonstrates how to build a reusable UI component in bubbletea-rs.
+// This demonstrates how to build a reusable UI component in bubble-t.
 // The component manages its own state and provides methods for updating
 // and rendering itself.
 
 /// Animated spinner with pink styling (matching Go version #63)
 ///
-/// ## bubbletea-rs Pattern: Custom Components
+/// ## bubble-t Pattern: Custom Components
 /// Instead of using a pre-built spinner, this shows how to create your own
 /// reusable component with:
 /// - Internal state management (current_frame)
@@ -77,6 +77,12 @@ pub struct ProgressFrameMsg;
 #[derive(Debug)]
 pub struct Spinner {
     current_frame: usize,
+}
+
+impl Default for Spinner {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Spinner {
@@ -97,7 +103,7 @@ impl Spinner {
 
     /// Get the current spinner frame with color #63 styling
     ///
-    /// ## bubbletea-rs Pattern: Styled Rendering
+    /// ## bubble-t Pattern: Styled Rendering
     /// Uses lipgloss-extras to apply consistent color styling.
     /// The Style::render() method applies ANSI color codes while
     /// keeping the visual appearance separate from the data.
@@ -119,7 +125,7 @@ impl Spinner {
 
     /// Create spinner tick command
     ///
-    /// ## bubbletea-rs Pattern: Async Commands with tick()
+    /// ## bubble-t Pattern: Async Commands with tick()
     /// tick() creates a one-shot timer that sends a message after a delay.
     /// This is perfect for animations - each tick advances the frame and
     /// schedules the next tick, creating a smooth animation loop.
@@ -134,7 +140,7 @@ impl Spinner {
 
 /// Animated progress bar with gradient (matching Go bubbles)
 ///
-/// ## bubbletea-rs Pattern: Smooth Animations
+/// ## bubble-t Pattern: Smooth Animations
 /// This demonstrates smooth percentage animations using:
 /// - target_percent vs current_percent for tweening
 /// - 60fps frame updates with ProgressFrameMsg
@@ -146,6 +152,12 @@ pub struct Progress {
     current_percent: f64, // Currently displayed percentage (animated)
     target_percent: f64,  // Target percentage (set immediately)
     animation_speed: f64, // How fast to animate between current and target
+}
+
+impl Default for Progress {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Progress {
@@ -160,7 +172,7 @@ impl Progress {
 
     /// Set target percentage for animation
     ///
-    /// ## bubbletea-rs Pattern: Conditional Commands
+    /// ## bubble-t Pattern: Conditional Commands
     /// This method demonstrates how to conditionally return commands based on state.
     /// If animation is needed, it returns a tick() command to start the animation loop.
     /// If no animation is needed, it returns None to avoid unnecessary work.
@@ -200,8 +212,8 @@ impl Progress {
 
     /// Render progress bar with gradient (without percentage, matching Go)
     ///
-    /// ## bubbletea-rs Pattern: Built-in Gradient Helper
-    /// Uses bubbletea-rs::gradient::gradient_filled_segment() to create
+    /// ## bubble-t Pattern: Built-in Gradient Helper
+    /// Uses bubble_t::gradient::gradient_filled_segment() to create
     /// the same gradient colors as Charm's default (pink to yellow).
     /// This ensures visual consistency across different examples.
     pub fn view(&self) -> String {
@@ -222,7 +234,7 @@ impl Progress {
 
 /// The application model - the core state of your TUI application
 ///
-/// ## bubbletea-rs Pattern: State Management
+/// ## bubble-t Pattern: State Management
 /// The model holds ALL application state. This includes:
 /// - Business logic state (packages, index, done)
 /// - UI component state (spinner, progress)
@@ -231,7 +243,7 @@ impl Progress {
 ///
 /// ## Key Pattern: completed_packages vs printf()
 /// Unlike the Go version which uses tea.Printf() to print above the UI,
-/// we maintain the completed list in model state. This is because bubbletea-rs's
+/// we maintain the completed list in model state. This is because bubble-t's
 /// printf() doesn't support the same cursor positioning as Go's version.
 /// This approach is actually cleaner - all state lives in the model!
 #[derive(Debug)]
@@ -253,6 +265,12 @@ pub struct PackageManagerModel {
     height: usize, // Terminal height (not used but available)
 }
 
+impl Default for PackageManagerModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PackageManagerModel {
     pub fn new() -> Self {
         Self {
@@ -269,7 +287,7 @@ impl PackageManagerModel {
 
     /// Create a download and install command for a package
     ///
-    /// ## bubbletea-rs Pattern: Async Simulation with tick()
+    /// ## bubble-t Pattern: Async Simulation with tick()
     /// This demonstrates how to simulate async work (downloading, file I/O, etc.)
     /// using tick() with random delays. The closure captures the package name
     /// and sends an InstalledPkgMsg when the "work" is complete.
@@ -277,7 +295,7 @@ impl PackageManagerModel {
     /// In a real app, this would be an actual async operation using tokio.
     fn download_and_install(pkg: String) -> Cmd {
         // Simulate download/install time with random delay (matching Go)
-        let delay = Duration::from_millis(rand::thread_rng().gen_range(100..=600));
+        let delay = Duration::from_millis(rand::rng().random_range(100..=600));
         tick(delay, move |_| {
             Box::new(InstalledPkgMsg(pkg.clone())) as Msg
         })
@@ -291,11 +309,12 @@ impl PackageManagerModel {
 impl Model for PackageManagerModel {
     /// Initialize the model and return initial commands
     ///
-    /// ## bubbletea-rs Pattern: Initial Commands with batch()
+    /// ## bubble-t Pattern: Initial Commands with batch()
     /// The init() method can return commands to run immediately.
     /// Here we use batch() to run multiple commands concurrently:
     /// - Start downloading the first package
     /// - Start the spinner animation
+    ///
     /// This demonstrates how to kick off multiple async processes.
     fn init() -> (Self, Option<Cmd>) {
         let model = Self::new();
@@ -310,7 +329,7 @@ impl Model for PackageManagerModel {
 
     /// Handle messages and update model state
     ///
-    /// ## bubbletea-rs Pattern: Message Handling with downcast_ref()
+    /// ## bubble-t Pattern: Message Handling with downcast_ref()
     /// Since Msg is a trait object, we use downcast_ref() to check the
     /// concrete message type. This is similar to pattern matching in Go,
     /// but uses Rust's type system for safety.
@@ -337,7 +356,7 @@ impl Model for PackageManagerModel {
 
         // Handle package installation completion
         //
-        // ## bubbletea-rs Pattern: State Updates + Command Coordination
+        // ## bubble-t Pattern: State Updates + Command Coordination
         // When a package completes:
         // 1. Update model state (add to completed list, advance index)
         // 2. Conditionally return commands based on new state
@@ -377,19 +396,17 @@ impl Model for PackageManagerModel {
 
         // Handle spinner tick messages
         //
-        // ## bubbletea-rs Pattern: Animation Loops
+        // ## bubble-t Pattern: Animation Loops
         // For continuous animations, each tick advances the state and
         // schedules the next tick. This creates a self-sustaining loop.
-        if msg.downcast_ref::<SpinnerTickMsg>().is_some() {
-            if !self.done {
-                self.spinner.advance_frame();
-                return Some(Spinner::tick_cmd()); // Schedule next frame
-            }
+        if msg.downcast_ref::<SpinnerTickMsg>().is_some() && !self.done {
+            self.spinner.advance_frame();
+            return Some(Spinner::tick_cmd()); // Schedule next frame
         }
 
         // Handle progress bar animation frames
         //
-        // ## bubbletea-rs Pattern: Conditional Animation
+        // ## bubble-t Pattern: Conditional Animation
         // The progress bar only animates when needed (when current != target).
         // This saves CPU when no animation is required.
         if msg.downcast_ref::<ProgressFrameMsg>().is_some() {
@@ -401,7 +418,7 @@ impl Model for PackageManagerModel {
 
     /// Render the current state to a string
     ///
-    /// ## bubbletea-rs Pattern: Stateful View Rendering
+    /// ## bubble-t Pattern: Stateful View Rendering
     /// The view() method renders ALL UI state, including:
     /// - The completed packages list (maintained in model state)
     /// - The current installation line with all components
@@ -445,7 +462,7 @@ impl Model for PackageManagerModel {
         let spin = format!("{} ", self.spinner.view());
         let prog = self.progress.view();
 
-        // ## bubbletea-rs Pattern: Responsive Layout Calculations
+        // ## bubble-t Pattern: Responsive Layout Calculations
         // When dealing with styled text (ANSI escape codes), you must separate:
         // - Visual width (what the user sees)
         // - String length (includes ANSI codes)
@@ -532,7 +549,7 @@ fn get_packages() -> Vec<String> {
         "libyuzu".to_string(),
     ];
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut shuffled = packages.clone();
     shuffled.shuffle(&mut rng);
 
@@ -543,9 +560,9 @@ fn get_packages() -> Vec<String> {
             format!(
                 "{}-{}.{}.{}",
                 pkg,
-                rng.gen_range(0..10),
-                rng.gen_range(0..10),
-                rng.gen_range(0..10)
+                rng.random_range(0..10),
+                rng.random_range(0..10),
+                rng.random_range(0..10)
             )
         })
         .collect()
@@ -557,7 +574,7 @@ fn get_packages() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // ## bubbletea-rs Pattern: Program Builder
+    // ## bubble-t Pattern: Program Builder
     // The Program::builder() provides a fluent API for configuration:
     // - signal_handler(true) enables Ctrl+C handling
     // - build() creates the program with our model type

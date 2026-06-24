@@ -2,7 +2,7 @@
 
 <img width="1200" src="./chat.gif" />
 
-A terminal-based chat interface built with bubbletea-rs, demonstrating how to create a scrollable message view with text input.
+A terminal-based chat interface built with bubble-t, demonstrating how to create a scrollable message view with text input.
 
 ## Features
 
@@ -31,7 +31,7 @@ cargo run
 
 ### Core Components
 
-This example uses two main widgets from `bubbletea-widgets`:
+This example uses two main widgets from `bubble-t-widgets`:
 
 1. **`viewport::Model`** - Displays scrollable message history
 2. **`textinput::Model`** - Handles user input with placeholder text
@@ -39,7 +39,7 @@ This example uses two main widgets from `bubbletea-widgets`:
 ### Setting Up the Text Input
 
 ```rust
-use bubbletea_widgets::textinput;
+use bubble_t_widgets::textinput;
 
 // Initialize with placeholder and prompt
 let mut input = textinput::new();
@@ -55,7 +55,7 @@ let _ = input.focus();
 ### Creating the Message Viewport
 
 ```rust
-use bubbletea_widgets::viewport;
+use bubble_t_widgets::viewport;
 
 // Calculate viewport height (terminal height - input - gap)
 let viewport_height = terminal_height
@@ -173,7 +173,7 @@ If you need multi-line input (like Slack or Discord), you can use `textarea` ins
 ### Using TextArea for Multi-line Input
 
 ```rust
-use bubbletea_widgets::textarea;
+use bubble_t_widgets::textarea;
 
 let mut ta = textarea::new();
 ta.set_height(3);  // 3 lines visible
@@ -385,9 +385,9 @@ cargo test --example chat
 
 ```toml
 [dependencies]
-bubbletea-rs = "0.0.9"
-bubbletea-widgets = "0.1.12"
-lipgloss-extras = { version = "0.1.1", features = ["full"] }
+bubble-t = "0.0.9"
+bubble-t-widgets = "0.1.12"
+lipgloss-extras = { version = "0.1.12", features = ["full"] }
 crossterm = "0.29"
 tokio = { version = "1", features = ["full"] }
 ```

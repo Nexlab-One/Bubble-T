@@ -2,7 +2,7 @@
 
 <img width="1200" src="./paginator.gif" />
 
-A simple program demonstrating the paginator component from the bubbletea-widgets library.
+A simple program demonstrating the paginator component from the bubble-t-widgets library.
 
 This example shows how to use a standalone paginator widget to navigate through a list of items. It matches the functionality of the original Go Bubble Tea paginator example.
 
@@ -27,7 +27,7 @@ cargo run -p paginator-example
 
 ## Developer Guide: Creating Pagination
 
-This example demonstrates how to implement pagination in your TUI applications using the bubbletea-widgets paginator component.
+This example demonstrates how to implement pagination in your TUI applications using the bubble-t-widgets paginator component.
 
 ### 1. Basic Setup
 
@@ -35,9 +35,9 @@ First, add the required dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bubbletea-rs = "0.0.9"
-bubbletea-widgets = "0.1.12"
-lipgloss-extras = { version = "0.1.1", features = ["full"] }
+bubble-t = "0.0.9"
+bubble-t-widgets = "0.1.12"
+lipgloss-extras = { version = "0.1.12", features = ["full"] }
 crossterm = "0.29"
 tokio = { version = "1.0", features = ["full"] }
 ```
@@ -45,8 +45,8 @@ tokio = { version = "1.0", features = ["full"] }
 ### 2. Import Required Types
 
 ```rust
-use bubbletea_rs::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program};
-use bubbletea_widgets::paginator::{Model as Paginator, Type};
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program};
+use bubble_t_widgets::paginator::{Model as Paginator, Type};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style};
 ```
@@ -95,7 +95,7 @@ fn update(&mut self, msg: Msg) -> Option<Cmd> {
     if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
         match key_msg.key {
             KeyCode::Char('q') | KeyCode::Esc => {
-                return Some(bubbletea_rs::quit());
+                return Some(bubble_t::quit());
             }
             _ => {}
         }
@@ -169,8 +169,8 @@ let on_last_page = self.paginator.on_last_page();
 You can also use pagination with the List widget:
 
 ```rust
-use bubbletea_widgets::list::{Model as List, DefaultItem, DefaultDelegate};
-use bubbletea_widgets::paginator::Type as PaginatorType;
+use bubble_t_widgets::list::{Model as List, DefaultItem, DefaultDelegate};
+use bubble_t_widgets::paginator::Type as PaginatorType;
 
 let list = List::new(items, DefaultDelegate::new(), 80, 24)
     .with_pagination_type(PaginatorType::Dots)

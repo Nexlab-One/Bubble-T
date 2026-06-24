@@ -1,6 +1,6 @@
 //! Advanced Timer Example
 //!
-//! This example demonstrates comprehensive usage of bubbletea-widgets components:
+//! This example demonstrates comprehensive usage of bubble-t-widgets components:
 //! - `timer::Model` for precise countdown timers
 //! - `key::Binding` for organized key binding management
 //! - `KeyMap` trait for help system integration
@@ -14,10 +14,10 @@
 //! - Visual progress indicators and status styling
 //! - Responsive layout that adapts to terminal width
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding, KeyMap};
-use bubbletea_widgets::timer::{
-    new as new_timer, Model as TimerModel, StartStopMsg, TickMsg, TimeoutMsg,
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
+use bubble_t_widgets::key::{Binding, KeyMap, new_binding, with_help, with_keys_str};
+use bubble_t_widgets::timer::{
+    Model as TimerModel, StartStopMsg, TickMsg, TimeoutMsg, new as new_timer,
 };
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
@@ -84,6 +84,12 @@ pub struct TimerKeyBindings {
     pub quit: Binding,
 }
 
+impl Default for TimerKeyBindings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TimerKeyBindings {
     pub fn new() -> Self {
         Self {
@@ -126,6 +132,12 @@ impl KeyMap for TimerKeyBindings {
             // Application controls column
             vec![&self.help_toggle, &self.quit],
         ]
+    }
+}
+
+impl Default for TimerApp {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -232,7 +244,7 @@ impl TimerApp {
         }
 
         let progress = 1.0 - (remaining.as_secs_f64() / total.as_secs_f64());
-        let width = (self.terminal_width as usize).min(50).max(20);
+        let width = (self.terminal_width as usize).clamp(20, 50);
         let filled = ((width as f64) * progress).round() as usize;
         let empty = width - filled;
 

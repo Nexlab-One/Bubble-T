@@ -2,7 +2,7 @@
 
 <img width="1200" src="./progress-animated.gif" />
 
-A smooth animated progress bar demonstration showing gradient colors, smooth animations, and responsive design patterns in bubbletea-rs applications.
+A smooth animated progress bar demonstration showing gradient colors, smooth animations, and responsive design patterns in bubble-t applications.
 
 ## Features
 
@@ -46,7 +46,7 @@ BT_DEBUG=1 cargo run --example progress-animated
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
 ```
 
 - `tick()`: High-frequency timers for animation frames
@@ -55,7 +55,7 @@ use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSi
 
 **Gradient Rendering:**
 ```rust
-use bubbletea_rs::gradient::gradient_filled_segment;
+use bubble_t::gradient::gradient_filled_segment;
 ```
 
 - `gradient_filled_segment()`: Built-in gradient rendering helper

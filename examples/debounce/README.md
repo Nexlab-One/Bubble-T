@@ -2,7 +2,7 @@
 
 <img width="1200" src="./debounce.gif" />
 
-A demonstration of command debouncing in bubbletea-rs, showing how to handle rapid user input by delaying actions until activity stops.
+A demonstration of command debouncing in bubble-t, showing how to handle rapid user input by delaying actions until activity stops.
 
 ## Features
 
@@ -29,7 +29,7 @@ cargo run --example debounce
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - `Model` trait: Defines the application structure

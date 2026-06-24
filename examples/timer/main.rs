@@ -1,9 +1,9 @@
 //! Timer Example
 //!
 //! A direct port of the Go Bubble Tea timer example demonstrating:
-//! - `bubbletea-widgets::timer` for precise countdown timers
-//! - `bubbletea-widgets::key` for organized key binding management  
-//! - `bubbletea-widgets::help` for automatic help text generation
+//! - `bubble-t-widgets::timer` for precise countdown timers
+//! - `bubble-t-widgets::key` for organized key binding management  
+//! - `bubble-t-widgets::help` for automatic help text generation
 //! - Automatic timer timeout and quit functionality
 //!
 //! This example closely mirrors `bubbletea/examples/timer/main.go` behavior:
@@ -13,13 +13,13 @@
 //! - Quit with 'q' or Ctrl+C
 //! - Automatic quit when timer reaches zero
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program};
-use bubbletea_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
-use bubbletea_widgets::key::{
-    matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap,
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, quit};
+use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
+use bubble_t_widgets::key::{
+    Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
 };
-use bubbletea_widgets::timer::{
-    new_with_interval, Model as TimerModel, StartStopMsg, TickMsg, TimeoutMsg,
+use bubble_t_widgets::timer::{
+    Model as TimerModel, StartStopMsg, TickMsg, TimeoutMsg, new_with_interval,
 };
 use std::time::Duration;
 
@@ -78,6 +78,12 @@ pub struct Keymap {
     pub quit: Binding,
 }
 
+impl Default for Keymap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Keymap {
     pub fn new() -> Self {
         Self {
@@ -111,6 +117,12 @@ impl KeyMap for Keymap {
     fn full_help(&self) -> Vec<Vec<&Binding>> {
         // Not used in this example - short help only
         vec![self.short_help()]
+    }
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

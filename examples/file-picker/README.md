@@ -1,6 +1,6 @@
 # File Picker
 
-An interactive file browser example using `bubbletea-widgets::filepicker`, demonstrating directory navigation, file filtering, and user selection with a polished interface.
+An interactive file browser example using `bubble-t-widgets::filepicker`, demonstrating directory navigation, file filtering, and user selection with a polished interface.
 
 ## Features
 
@@ -41,7 +41,7 @@ cargo run --example file-picker
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - Standard MVU pattern implementation
@@ -50,7 +50,7 @@ use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
 
 **File Picker Widget:**
 ```rust
-use bubbletea_widgets::filepicker;
+use bubble_t_widgets::filepicker;
 ```
 
 - `filepicker::new()`: Creates file picker widget
@@ -59,7 +59,7 @@ use bubbletea_widgets::filepicker;
 
 **Key Binding System:**
 ```rust
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t_widgets::key::{new_binding, with_help, with_keys_str, Binding};
 ```
 
 ### Architecture Walkthrough
@@ -160,7 +160,7 @@ if let (true, path) = self.filepicker.did_select_file(&msg) {
 
 **Command Batching:**
 ```rust
-Some(bubbletea_rs::batch(vec![
+Some(bubble_t::batch(vec![
     fp_cmd,                                    // Widget's command
     clear_error_after(Duration::from_secs(2)) // Our command
 ]))
@@ -201,7 +201,7 @@ if !final_model.selected_file.is_empty() {
 
 **Window Sizing:**
 ```rust
-let window_size_cmd = bubbletea_rs::window_size();
+let window_size_cmd = bubble_t::window_size();
 ```
 
 Send window size messages to ensure proper widget layout.
@@ -220,7 +220,7 @@ Send window size messages to ensure proper widget layout.
 ## Files
 
 - `main.rs` — Complete file picker implementation using widgets
-- `Cargo.toml` — Dependencies including bubbletea-widgets
+- `Cargo.toml` — Dependencies including bubble-t-widgets
 - `README.md` — This documentation
 
 ## Extension Ideas

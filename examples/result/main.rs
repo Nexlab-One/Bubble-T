@@ -1,8 +1,8 @@
 // A simple example that shows how to retrieve a value from a Bubble Tea
 // program after the Bubble Tea has exited.
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::key::{Binding, matches_binding, new_binding, with_help, with_keys_str};
 
 const CHOICES: &[&str] = &["Taro", "Coffee", "Lychee"];
 

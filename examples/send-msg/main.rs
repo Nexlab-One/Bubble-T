@@ -9,9 +9,9 @@
 //! - Message buffering and display
 //! - Proper styling with lipgloss-extras
 
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
 use lipgloss_extras::lipgloss::{Color, Style};
-use rand::Rng;
+use rand::RngExt;
 use std::time::Duration;
 
 /// Result message sent from external task
@@ -122,13 +122,11 @@ impl Model for SendMsgModel {
         }
 
         // Handle spinner tick messages
-        if msg.downcast_ref::<SpinnerTickMsg>().is_some() {
-            if !self.quitting {
-                self.advance_spinner();
-                return Some(tick(Duration::from_millis(100), |_| {
-                    Box::new(SpinnerTickMsg) as Msg
-                }));
-            }
+        if msg.downcast_ref::<SpinnerTickMsg>().is_some() && !self.quitting {
+            self.advance_spinner();
+            return Some(tick(Duration::from_millis(100), |_| {
+                Box::new(SpinnerTickMsg) as Msg
+            }));
         }
 
         // Handle result messages from external task
@@ -202,15 +200,15 @@ fn random_food() -> String {
         "some ramen",
     ];
 
-    let mut rng = rand::thread_rng();
-    foods[rng.gen_range(0..foods.len())].to_string()
+    let mut rng = rand::rng();
+    foods[rng.random_range(0..foods.len())].to_string()
 }
 
 /// Command to simulate food eating activity (matching Go version's external sending)
 fn simulate_food_eating() -> Cmd {
     Box::pin(async move {
         // Random pause between 100-999ms like Go version
-        let pause_ms = rand::thread_rng().gen_range(100..=999);
+        let pause_ms = rand::rng().random_range(100..=999);
         let pause = Duration::from_millis(pause_ms);
         tokio::time::sleep(pause).await;
 

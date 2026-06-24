@@ -8,7 +8,7 @@
 //! - Command composition and orchestration
 //! - Automatic program termination after command completion
 
-use bubbletea_rs::{batch, println, quit, sequence, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, println, quit, sequence};
 
 /// The application model - minimal like the Go version
 #[derive(Debug)]

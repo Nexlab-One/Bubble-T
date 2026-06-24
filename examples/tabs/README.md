@@ -2,7 +2,7 @@
 
 <img width="800" src="./tabs.gif" />
 
-A sophisticated tabbed interface example demonstrating advanced layout techniques, border manipulation, and keyboard navigation patterns using bubbletea-rs and lipgloss-extras for styling.
+A sophisticated tabbed interface example demonstrating advanced layout techniques, border manipulation, and keyboard navigation patterns using bubble-t and lipgloss-extras for styling.
 
 ## Features
 
@@ -373,7 +373,7 @@ self.active_tab = max(self.active_tab.saturating_sub(1), 0);
 ## Files
 
 - `main.rs` — Complete tabbed interface implementation (177 lines)
-- `Cargo.toml` — Dependencies (bubbletea-rs, lipgloss-extras, crossterm, tokio)  
+- `Cargo.toml` — Dependencies (bubble-t, lipgloss-extras, crossterm, tokio)  
 - `tabs.gif` — Demo animation showing navigation
 - `README.md` — This comprehensive documentation
 

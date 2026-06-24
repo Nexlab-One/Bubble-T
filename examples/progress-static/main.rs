@@ -15,8 +15,8 @@
 //! maintaining the same behavior: increment by 25% every second, quit on
 //! any key press, and automatically quit when reaching 100%.
 
-use bubbletea_rs::gradient::gradient_filled_segment;
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::gradient::gradient_filled_segment;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit, tick};
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
 
@@ -35,6 +35,12 @@ pub struct ProgressBar {
     pub width: usize,
     pub filled_char: char,
     pub empty_char: char,
+}
+
+impl Default for ProgressBar {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProgressBar {
@@ -67,6 +73,12 @@ impl ProgressBar {
 pub struct ProgressStaticModel {
     pub percent: f64,
     pub progress: ProgressBar,
+}
+
+impl Default for ProgressStaticModel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProgressStaticModel {

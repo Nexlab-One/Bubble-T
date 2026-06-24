@@ -47,16 +47,13 @@ jobs:
             ${{ runner.os }}-${{ matrix.rust }}-cargo-build-
 
       - name: Cargo check
-        run: cargo check --lib --all-features
+        run: cargo check --workspace --all-targets --all-features
 
       - name: Run doctests
-        run: cargo test --doc --all-features
+        run: cargo test --doc --workspace --all-features
 
       - name: Run tests
-        run: cargo test --lib --all-features
-
-      - name: Run tests (tokio runtime only)
-        run: cargo test --lib --no-default-features --features tokio-runtime
+        run: cargo test --workspace --all-features --lib
 
   fmt:
     name: Format
@@ -104,7 +101,23 @@ jobs:
             ${{ runner.os }}-stable-cargo-build-
 
       - name: Run clippy
-        run: cargo clippy --lib --all-features -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  audit:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo audit
+        run: cargo audit
 
   doc:
     name: Documentation
@@ -125,6 +138,6 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build documentation
-        run: cargo doc --no-deps --all-features
+        run: cargo doc --no-deps -p bubble-t -p bubble-t-widgets -p lipgloss -p lipgloss-list -p lipgloss-table -p lipgloss-tree -p lipgloss-extras --all-features
         env:
           RUSTDOCFLAGS: -D warnings

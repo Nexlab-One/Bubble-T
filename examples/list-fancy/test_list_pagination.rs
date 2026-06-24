@@ -1,6 +1,6 @@
 // Test if List widget can use dots pagination
-use bubbletea_widgets::list::{DefaultItem, DefaultDelegate, Model as List};
-use bubbletea_widgets::paginator::Type;
+use bubble_t_widgets::list::{DefaultItem, DefaultDelegate, Model as List};
+use bubble_t_widgets::paginator::Type;
 
 fn main() {
     let items = vec![

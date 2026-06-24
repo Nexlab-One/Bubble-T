@@ -1,0 +1,45 @@
+[package]
+name = "bubble-t"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "The fun, functional, and stateful way to build terminal apps in Rust."
+readme = "../../README.md"
+repository.workspace = true
+license.workspace = true
+keywords = ["tui", "cli", "terminal", "elm", "tea"]
+categories = ["command-line-interface", "asynchronous"]
+
+[lib]
+name = "bubble_t"
+
+[features]
+default = ["tokio-runtime", "logging"]
+
+# Runtime selection
+tokio-runtime = ["tokio/full"]
+
+# Optional functionality
+logging = ["log"]
+mouse-support = []
+bracketed-paste = []
+focus-reporting = []
+
+# Development features
+testing = []
+
+[dependencies]
+crossterm = { workspace = true }
+tokio = { workspace = true, optional = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true, optional = true }
+futures = { workspace = true }
+tokio-util = { workspace = true }
+pin-project = { workspace = true }
+parking_lot = { workspace = true }
+async-trait = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }

@@ -37,7 +37,7 @@ Applications like `vim`, `htop`, and `less` use the alternate buffer to provide 
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - `tick()`: Single-shot timer for countdown implementation

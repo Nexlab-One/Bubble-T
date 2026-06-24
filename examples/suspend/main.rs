@@ -1,4 +1,4 @@
-use bubbletea_rs::{interrupt, quit, suspend, Cmd, KeyMsg, Model, Msg, Program, ResumeMsg};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, ResumeMsg, interrupt, quit, suspend};
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::process;
 
@@ -74,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Err(err) = program.run().await {
         eprintln!("Error running program: {}", err);
         match err {
-            bubbletea_rs::Error::Interrupted => {
+            bubble_t::Error::Interrupted => {
                 process::exit(130);
             }
             _ => {

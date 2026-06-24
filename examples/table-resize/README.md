@@ -49,7 +49,7 @@ let visible_rows = if self.rows.len() <= max_visible_rows {
 
 ## Key Technologies
 
-### Bubble Tea (bubbletea-rs)
+### Bubble Tea (bubble-t)
 Bubble Tea is a TUI framework based on The Elm Architecture, using the Model-View-Update pattern:
 
 - **Model**: Application state (our `AppModel` struct)
@@ -232,7 +232,7 @@ let visible_rows = filtered_data.clone();
 
 ## Learn More
 
-- **Bubble Tea Rust**: [Documentation](https://docs.rs/bubbletea-rs)
+- **Bubble Tea Rust**: [Documentation](https://docs.rs/bubble-t)
 - **lipgloss-extras**: [API Reference](https://docs.rs/lipgloss-extras)
 - **Original Go Bubble Tea**: [GitHub](https://github.com/charmbracelet/bubbletea)
 - **Terminal Styling**: [lipgloss Go docs](https://github.com/charmbracelet/lipgloss)

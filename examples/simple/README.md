@@ -2,7 +2,7 @@
 
 <img width="1200" src="./simple.gif" />
 
-The foundational example demonstrating core bubbletea-rs concepts with a 5-second countdown timer, keyboard input handling, and the essential Model-View-Update (MVU) architecture pattern.
+The foundational example demonstrating core bubble-t concepts with a 5-second countdown timer, keyboard input handling, and the essential Model-View-Update (MVU) architecture pattern.
 
 ## Features
 
@@ -30,22 +30,22 @@ cargo run --example simple
 
 ### Key Concepts for Beginners
 
-**Model-View-Update (MVU) Architecture**: This example is the perfect introduction to bubbletea-rs because it demonstrates all three core components:
+**Model-View-Update (MVU) Architecture**: This example is the perfect introduction to bubble-t because it demonstrates all three core components:
 
 1. **Model**: Application state (`SimpleModel(i32)` - just a countdown number)
 2. **View**: UI rendering (`view()` method returns display string)
 3. **Update**: Event handling (`update()` method processes messages and updates state)
 
-**Essential Patterns**: Every bubbletea-rs application uses these patterns shown here.
+**Essential Patterns**: Every bubble-t application uses these patterns shown here.
 
 ### Public API Usage
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, suspend, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, suspend, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
-- `Model` trait: The foundation of all bubbletea-rs applications
+- `Model` trait: The foundation of all bubble-t applications
 - `KeyMsg`: Keyboard input events
 - `Cmd`: Asynchronous commands (like timers)
 - `quit()`: Graceful program termination
@@ -322,7 +322,7 @@ fn view(&self) -> String {
 ## Files
 
 - `main.rs` — Complete simple countdown implementation
-- `Cargo.toml` — Minimal dependencies (bubbletea-rs, crossterm, tokio)
+- `Cargo.toml` — Minimal dependencies (bubble-t, crossterm, tokio)
 - `simple.gif` — Demo animation
 - `README.md` — This documentation
 
@@ -335,4 +335,4 @@ This example is the perfect introduction because it demonstrates:
 3. **Real Functionality**: Actual timer, keyboard input, process control
 4. **Foundation Patterns**: Everything you learn here applies to complex applications
 
-**Every bubbletea-rs application** builds on these patterns shown in the simple example.
+**Every bubble-t application** builds on these patterns shown in the simple example.

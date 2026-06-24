@@ -8,14 +8,14 @@
 //
 // This approach is more idiomatic in Rust and provides the same user experience.
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
-use bubbletea_widgets::key::{
-    matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap,
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
+use bubble_t_widgets::key::{
+    Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
 };
-use bubbletea_widgets::{textarea, Component};
+use bubble_t_widgets::{Component, textarea};
 use crossterm::event::KeyCode;
-use lipgloss_extras::lipgloss::{join_horizontal, rounded_border, Color, Style, TOP};
+use lipgloss_extras::lipgloss::{Color, Style, TOP, join_horizontal, rounded_border};
 
 // Styling to match the Go version
 fn choice_style() -> Style {
@@ -76,7 +76,7 @@ impl KeyMap for Keymap {
 impl AppModel {
     fn new() -> Self {
         let textarea = textarea::new();
-        // Note: bubbletea-widgets textarea doesn't have set_placeholder in current version
+        // Note: bubble-t-widgets textarea doesn't have set_placeholder in current version
         // We'll show placeholder text in the view instead
 
         Self {

@@ -108,7 +108,7 @@ let program = builder.build()?;
 
 ### Command Batching
 ```rust
-use bubbletea_rs::batch;
+use bubble_t::batch;
 
 let cmds = vec![
     tick(Duration::from_millis(100), |_| Box::new(SpinnerTickMsg) as Msg),

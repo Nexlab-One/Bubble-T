@@ -5,7 +5,7 @@ A demonstration of stdin pipe handling, showing how to build terminal applicatio
 ## Features
 
 - **Stdin Pipe Detection**: Automatically detects piped input vs interactive mode
-- **Text Input Widget**: Uses bubbletea-widgets for text editing
+- **Text Input Widget**: Uses bubble-t-widgets for text editing
 - **Pipe Data Processing**: Reads and processes data from stdin pipes
 - **Shell Integration**: Works seamlessly with Unix pipes and redirects
 - **Interactive Editing**: Edit piped content after receiving it
@@ -50,12 +50,12 @@ cargo run --example pipe
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 **Text Input Widget:**
 ```rust
-use bubbletea_widgets::textinput;
+use bubble_t_widgets::textinput;
 ```
 
 - `textinput::new()`: Create editable text input widget
@@ -403,7 +403,7 @@ fn save_and_quit(&self) -> Cmd {
 ## Files
 
 - `main.rs` — Complete pipe input handling with text editing
-- `Cargo.toml` — Dependencies including bubbletea-widgets
+- `Cargo.toml` — Dependencies including bubble-t-widgets
 - `README.md` — This documentation
 
 ## Implementation Tips

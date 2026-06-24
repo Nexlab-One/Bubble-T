@@ -2,7 +2,7 @@
 
 <img width="1200" src="./stopwatch.gif">
 
-A direct port of the Go Bubble Tea stopwatch example demonstrating how to use `bubbletea-widgets` components. This example closely mirrors [`bubbletea/examples/stopwatch/main.go`](https://github.com/charmbracelet/bubbletea/blob/master/examples/stopwatch/main.go) behavior and output.
+A direct port of the Go Bubble Tea stopwatch example demonstrating how to use `bubble-t-widgets` components. This example closely mirrors [`bubbletea/examples/stopwatch/main.go`](https://github.com/charmbracelet/bubbletea/blob/master/examples/stopwatch/main.go) behavior and output.
 
 ## Features
 
@@ -14,9 +14,9 @@ A direct port of the Go Bubble Tea stopwatch example demonstrating how to use `b
 
 ## Widget Components Used
 
-- **`bubbletea-widgets::stopwatch`**: High-precision count-up timer with automatic tick management
-- **`bubbletea-widgets::key`**: Organized key binding system with help text and enable/disable functionality
-- **`bubbletea-widgets::help`**: Automatic help text generation that displays available key bindings
+- **`bubble-t-widgets::stopwatch`**: High-precision count-up timer with automatic tick management
+- **`bubble-t-widgets::key`**: Organized key binding system with help text and enable/disable functionality
+- **`bubble-t-widgets::help`**: Automatic help text generation that displays available key bindings
 
 ## Run
 
@@ -132,7 +132,7 @@ if matches_binding(key, &self.keymap.start) || matches_binding(key, &self.keymap
 ## Key Differences from Go Version
 
 ### Help System Widget
-The Rust version uses the `bubbletea-widgets::help` widget matching Go's `bubbles/help` package, providing automatic help text generation from key bindings with proper filtering for enabled/disabled states.
+The Rust version uses the `bubble-t-widgets::help` widget matching Go's `bubbles/help` package, providing automatic help text generation from key bindings with proper filtering for enabled/disabled states.
 
 ### Rust-Specific Patterns
 - **Pattern Matching**: Uses `if let Some()` patterns instead of Go's type switches
@@ -156,7 +156,7 @@ The stopwatch displays time in MM:SS.mmm format:
 
 ### Basic Usage
 ```rust
-use bubbletea_widgets::stopwatch::{new_with_interval, Model as StopwatchModel};
+use bubble_t_widgets::stopwatch::{new_with_interval, Model as StopwatchModel};
 use std::time::Duration;
 
 // Create a stopwatch with millisecond precision
@@ -183,7 +183,7 @@ fn update(&mut self, msg: Msg) -> Option<Cmd> {
 
 ### Key Integration
 ```rust
-use bubbletea_widgets::key::{new_binding, with_keys_str, with_help};
+use bubble_t_widgets::key::{new_binding, with_keys_str, with_help};
 
 let reset_binding = new_binding(vec![
     with_keys_str(&["r"]),

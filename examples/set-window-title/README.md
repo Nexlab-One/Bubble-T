@@ -41,7 +41,7 @@ cargo run --example set-window-title
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, set_window_title, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, set_window_title, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - `set_window_title(String)`: Command to set terminal window title

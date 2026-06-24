@@ -40,7 +40,7 @@ cargo run --example window-size
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, window_size, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::{quit, window_size, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
 ```
 
 - `window_size()`: Command to request current terminal dimensions

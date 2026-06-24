@@ -2,12 +2,12 @@
 
 <img width="1200" src="./textinput.gif" />
 
-This example demonstrates how to create an interactive text input field using the `bubbletea-rs` framework and its `bubbletea-widgets` library. If you're new to TUI (Terminal User Interface) development or the Bubbletea framework, this guide will walk you through everything you need to know.
+This example demonstrates how to create an interactive text input field using the `bubble-t` framework and its `bubble-t-widgets` library. If you're new to TUI (Terminal User Interface) development or the Bubbletea framework, this guide will walk you through everything you need to know.
 
 ## What You'll Learn
 
 - How to build a TUI application using the MVU (Model-View-Update) pattern
-- How to use the pre-built `textinput` widget from `bubbletea-widgets`
+- How to use the pre-built `textinput` widget from `bubble-t-widgets`
 - How to handle keyboard input and user interactions
 - How to manage application state and control flow
 
@@ -50,8 +50,8 @@ First, add these dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bubbletea-rs = "0.0.9"           # The main framework
-bubbletea-widgets = "0.1.12"      # Pre-built UI components
+bubble-t = "0.0.9"           # The main framework
+bubble-t-widgets = "0.1.12"      # Pre-built UI components
 tokio = { version = "1.0", features = ["full"] }  # Async runtime
 crossterm = "0.29"                # Terminal manipulation
 ```
@@ -59,8 +59,8 @@ crossterm = "0.29"                # Terminal manipulation
 ### Step 2: Import Required Components
 
 ```rust
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::textinput;
+use bubble_t::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t_widgets::textinput;
 use crossterm::event::{KeyCode, KeyModifiers};
 ```
 
@@ -268,7 +268,7 @@ fn view(&self) -> String {
 
 ## Key Features Demonstrated
 
-- **Pre-built Widget**: Using `bubbletea-widgets::textinput` instead of building from scratch
+- **Pre-built Widget**: Using `bubble-t-widgets::textinput` instead of building from scratch
 - **Event Handling**: Processing keyboard input through the message system
 - **State Management**: Tracking application state (input content, quitting flag)
 - **Clean Exit**: Properly handling Escape, Enter, and Ctrl+C
@@ -300,8 +300,8 @@ Now that you understand the basics, try:
 
 ## Further Reading
 
-- [Bubbletea-rs Documentation](https://docs.rs/bubbletea-rs)
-- [Bubbletea-widgets Documentation](https://docs.rs/bubbletea-widgets)
+- [bubble-t Documentation](https://docs.rs/bubble-t)
+- [bubble-t-widgets Documentation](https://docs.rs/bubble-t-widgets)
 - [Original Go Bubble Tea](https://github.com/charmbracelet/bubbletea) - for additional examples and patterns
 
 ## Summary

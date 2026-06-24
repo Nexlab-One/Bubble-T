@@ -10,7 +10,7 @@ env:
 
 jobs:
   publish:
-    name: Publish to crates.io
+    name: Publish workspace crates
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -36,11 +36,39 @@ jobs:
           path: target
           key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
 
-      # Skip tests - workspace resolves examples which depend on unreleased crates
-      # CI workflow tests on PRs, so this is safe
+      # Publish in dependency order (path deps must exist on crates.io first)
+      - name: Publish lipgloss
+        run: cargo publish -p lipgloss --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-      - name: Publish to crates.io
-        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish lipgloss-list
+        run: cargo publish -p lipgloss-list --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish lipgloss-table
+        run: cargo publish -p lipgloss-table --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish lipgloss-tree
+        run: cargo publish -p lipgloss-tree --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish lipgloss-extras
+        run: cargo publish -p lipgloss-extras --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish bubble-t
+        run: cargo publish -p bubble-t --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish bubble-t-widgets
+        run: cargo publish -p bubble-t-widgets --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 

@@ -1,10 +1,10 @@
-//! Text Input Example (Rust, using bubbletea-widgets)
+//! Text Input Example (Rust, using bubble-t-widgets)
 //!
-//! Port of Bubble Tea's `textinput` example using `bubbletea-widgets::textinput`.
+//! Port of Bubble Tea's `textinput` example using `bubble-t-widgets::textinput`.
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
-use bubbletea_widgets::textinput;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
+use bubble_t_widgets::textinput;
 
 /// Key bindings for the textinput example
 #[derive(Debug)]
@@ -57,11 +57,11 @@ impl Model for TextInputModel {
 
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
         // Handle quit keys first
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keys.quit.matches(key_msg) || self.keys.quit_alt.matches(key_msg) {
-                self.quitting = true;
-                return Some(quit());
-            }
+        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>()
+            && (self.keys.quit.matches(key_msg) || self.keys.quit_alt.matches(key_msg))
+        {
+            self.quitting = true;
+            return Some(quit());
         }
 
         self.text_input.update(msg)

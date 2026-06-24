@@ -1,7 +1,7 @@
 //! Help Example
 //!
 //! Demonstrates:
-//! - Key binding system with help text using bubbletea-widgets
+//! - Key binding system with help text using bubble-t-widgets
 //! - Toggle between short and full help modes
 //! - Arrow key navigation with visual feedback
 //! - Responsive help text formatting
@@ -9,12 +9,12 @@
 //!
 //! This example shows how to implement a help system that displays
 //! key bindings and can toggle between mini and full help views.
-//! Uses bubbletea-widgets help and key modules for proper integration.
+//! Uses bubble-t-widgets help and key modules for proper integration.
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg};
-use bubbletea_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
-use bubbletea_widgets::key::{
-    matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap,
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, quit};
+use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
+use bubble_t_widgets::key::{
+    Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
 };
 use crossterm::terminal;
 use lipgloss_extras::lipgloss::{Color, Style};
@@ -88,6 +88,12 @@ pub struct Model {
     pub input_style: Style,
     pub last_key: String,
     pub quitting: bool,
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Model {

@@ -19,8 +19,8 @@
 //!
 //! Usage: cargo run -- --url https://example.com/file.zip
 
-use bubbletea_rs::gradient::gradient_filled_segment;
-use bubbletea_rs::{batch, quit, sequence, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::gradient::gradient_filled_segment;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, batch, quit, sequence, tick};
 use clap::Parser;
 use futures_util::StreamExt;
 use lipgloss_extras::lipgloss::{Color, Style};
@@ -124,6 +124,12 @@ pub struct AnimatedProgressBar {
     pub animation_speed: f64,
 }
 
+impl Default for AnimatedProgressBar {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AnimatedProgressBar {
     pub fn new() -> Self {
         Self {
@@ -201,6 +207,12 @@ pub struct ProgressDownloadModel {
     pub progress: AnimatedProgressBar,
     pub error: Option<String>,
     pub progress_receiver: mpsc::UnboundedReceiver<Msg>,
+}
+
+impl Default for ProgressDownloadModel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ProgressDownloadModel {
@@ -346,6 +358,26 @@ impl Model for ProgressDownloadModel {
     }
 }
 
+/// Returns a safe local filename derived from a URL path segment.
+fn sanitize_download_filename(url: &str) -> Option<String> {
+    let name = Path::new(url).file_name()?.to_str()?;
+    if name.is_empty() || name == "." || name == ".." {
+        return None;
+    }
+    if name.contains('/') || name.contains('\\') {
+        return None;
+    }
+    Some(name.to_string())
+}
+
+fn validate_download_url(url: &str) -> Result<(), String> {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        Ok(())
+    } else {
+        Err("only http and https URLs are supported".to_string())
+    }
+}
+
 async fn get_response(url: &str) -> Result<reqwest::Response, Box<dyn std::error::Error>> {
     let response = reqwest::get(url).await?;
 
@@ -362,6 +394,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if args.url.is_empty() {
         eprintln!("URL is required");
+        std::process::exit(1);
+    }
+
+    if let Err(reason) = validate_download_url(&args.url) {
+        eprintln!("invalid URL: {reason}");
         std::process::exit(1);
     }
 
@@ -384,11 +421,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Extract filename from URL
-    let filename = Path::new(&args.url)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("downloaded_file");
+    // Extract filename from URL (basename only; reject path traversal)
+    let filename = sanitize_download_filename(&args.url).unwrap_or_else(|| {
+        eprintln!("could not derive a safe filename from URL");
+        std::process::exit(1);
+    });
 
     // Create the output file
     let file = match File::create(filename).await {

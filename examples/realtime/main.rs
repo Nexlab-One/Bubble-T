@@ -5,12 +5,12 @@
 //!
 //! Demonstrates:
 //! - Real-time activity simulation with random intervals
-//! - Spinner animation using bubbletea-widgets
+//! - Spinner animation using bubble-t-widgets
 //! - Event counting and display
 //! - Command batching for concurrent operations
 //! - Proper key handling (any key quits)
 
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
 use std::time::Duration;
 
 /// A message used to indicate that activity has occurred
@@ -26,14 +26,10 @@ pub struct SpinnerTickMsg;
 /// As a command, Bubble Tea will run this asynchronously.
 fn listen_for_activity() -> Cmd {
     Box::pin(async move {
-        use rand::Rng;
-        loop {
-            let delay_ms = rand::rng().random_range(100..=1000);
-            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
-            // In a real application, this would send to a channel
-            // For this example, we'll just return immediately
-            return Some(Box::new(ResponseMsg) as Msg);
-        }
+        use rand::RngExt;
+        let delay_ms = rand::rng().random_range(100..=1000);
+        tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+        Some(Box::new(ResponseMsg) as Msg)
     })
 }
 
@@ -48,6 +44,12 @@ pub struct RealtimeModel {
     spinner_frame: usize,
     responses: u32,
     quitting: bool,
+}
+
+impl Default for RealtimeModel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RealtimeModel {
@@ -107,13 +109,11 @@ impl Model for RealtimeModel {
         }
 
         // Handle spinner tick messages
-        if msg.downcast_ref::<SpinnerTickMsg>().is_some() {
-            if !self.quitting {
-                self.advance_spinner();
-                return Some(tick(Duration::from_millis(100), |_| {
-                    Box::new(SpinnerTickMsg) as Msg
-                }));
-            }
+        if msg.downcast_ref::<SpinnerTickMsg>().is_some() && !self.quitting {
+            self.advance_spinner();
+            return Some(tick(Duration::from_millis(100), |_| {
+                Box::new(SpinnerTickMsg) as Msg
+            }));
         }
 
         None

@@ -1,146 +1,108 @@
-# bubbletea-rs
+# bubble-t
 
-[![CI](https://github.com/whit3rabbit/bubbletea-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/whit3rabbit/bubbletea-rs/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/bubbletea-rs.svg)](https://crates.io/crates/bubbletea-rs)
+[![CI](https://github.com/Nexlab-One/Bubble-T/actions/workflows/ci.yml/badge.svg)](https://github.com/Nexlab-One/Bubble-T/actions/workflows/ci.yml)
 
-A Rust reimagining of the delightful Bubble Tea TUI framework — inspired by, and paying homage to, the original Go project from Charmbracelet.
+A Rust reimagining of the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework — inspired by, and paying homage to, the original Go project from Charmbracelet.
 
-Build delightful terminal user interfaces with the Model-View-Update pattern, async commands, and rich styling capabilities.
+Build terminal user interfaces with the Model-View-Update pattern, async commands, and rich styling.
 
-> Status: Active development. Core APIs are stabilizing, but some interfaces may still evolve.
+> **Status:** Active development. Core APIs are stabilizing under the `bubble-t` crate (formerly `bubbletea-rs` / `bubble-t`).
 
-## Examples
+## Monorepo layout
 
-I tried to match all the examples from the bubbletea repository in rust. You can view the examples here:
+This repository is a single Cargo workspace containing the full Rust Bubble Tea ecosystem:
 
-https://github.com/whit3rabbit/bubbletea-rs/blob/main/examples/README.md
+| Crate | Path | Purpose |
+|-------|------|---------|
+| **bubble-t** | `crates/bubble-t` | Core MVU framework with async runtime |
+| **bubble-t-widgets** | `crates/bubble-t-widgets` | Pre-built UI components (spinners, inputs, tables, etc.) |
+| **lipgloss** | `crates/lipgloss` | Terminal styling (colors, borders, layouts) |
+| **lipgloss-list / -table / -tree** | `crates/lipgloss-*` | Styled list, table, and tree renderers |
+| **lipgloss-extras** | `crates/lipgloss-extras` | Feature-gated facade over lipgloss components |
 
-## The Ecosystem
+## Quick start
 
-The Rust Bubble Tea ecosystem consists of three complementary crates:
-
-| Crate | Repository | Purpose |
-|-------|------------|---------|
-| **bubbletea-rs** | [bubbletea-rs](https://github.com/whit3rabbit/bubbletea-rs) | Core MVU framework with async runtime |
-| **bubbletea-widgets** | [bubbles-rs](https://github.com/whit3rabbit/bubbles-rs) | Pre-built UI components (spinners, inputs, tables, etc.) |
-| **lipgloss-extras** | [lipgloss-rs](https://github.com/whit3rabbit/lipgloss-rs) | Styling framework with colors, layouts, and rich text |
-
-### Crates.io:
-
-All crates are published to crates.io:
-
-* https://crates.io/crates/bubbletea-rs
-* https://crates.io/crates/bubbletea-widgets
-* https://crates.io/crates/lipgloss
-* > https://crates.io/crates/lipgloss-extras
-* > https://crates.io/crates/lipgloss-list
-* > https://crates.io/crates/lipgloss-table
-
-### Quick Start
-
-Add these dependencies to your `Cargo.toml`:
+From crates.io (when published):
 
 ```toml
 [dependencies]
-bubbletea-rs = "0.0.9"
-bubbletea-widgets = "0.1.12" 
-lipgloss-extras = { version = "0.1.1", features = ["full"] }
+bubble-t = "0.1.12"
+bubble-t-widgets = "0.1.12"
+lipgloss-extras = { version = "0.1.12", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 ```
 
-## About
+From this monorepo (path dependencies):
 
-Bubble Tea (Go) popularized a functional, message-passing architecture for building terminal applications. This project explores those ideas in Rust: an ergonomic, async-friendly take on the Model–Update–View pattern, with a focus on correctness, performance, and great developer experience.
-
-### Core Features
-
-- **Model-View-Update Architecture**: Clean separation of state, rendering, and updates
-- **Async-First Design**: Built on Tokio with async commands and non-blocking operations  
-- **Rich Styling**: Full color support, gradients, borders, and layouts via lipgloss-extras
-- **Pre-built Components**: 13+ widgets including spinners, inputs, tables, progress bars
-- **Command System**: Timers, HTTP requests, batch operations, and custom async commands
-- **Terminal Controls**: Mouse support, alternate screen, window sizing, focus management
-- **Type Safety**: Leverages Rust's type system for reliable, memory-safe TUIs
-
-### Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Model         │    │    Commands      │    │     View        │
-│   (State)       │    │   (Async Ops)    │    │  (Rendering)    │
-├─────────────────┤    ├──────────────────┤    ├─────────────────┤
-│ • App state     │    │ • Timers         │    │ • lipgloss      │
-│ • Business      │    │ • HTTP requests  │    │ • Styled text   │
-│   logic         │    │ • File I/O       │    │ • Layouts       │
-│ • Updates       │    │ • Custom async   │    │ • Components    │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       ▼                       │
-         │              ┌─────────────────┐              │
-         └─────────────►│   bubbletea-rs  │◄─────────────┘
-                        │   Event Loop    │
-                        └─────────────────┘
+```toml
+[dependencies]
+bubble-t = { path = "../crates/bubble-t" }
+bubble-t-widgets = { path = "../crates/bubble-t-widgets" }
+lipgloss-extras = { path = "../crates/lipgloss-extras", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 ```
 
-## Getting Started
+Minimal application:
 
-To run any example:
+```rust
+use bubble_t::{Model, Msg, Cmd, Program};
+
+struct App { count: i32 }
+
+impl Model for App {
+    fn init() -> (Self, Option<Cmd>) {
+        (Self { count: 0 }, None)
+    }
+    fn update(&mut self, _msg: Msg) -> Option<Cmd> { None }
+    fn view(&self) -> String { format!("count: {}", self.count) }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    Program::<App>::builder().build()?.run().await?;
+    Ok(())
+}
+```
+
+## Examples
+
+Forty-plus examples mirror the upstream Go Bubble Tea gallery. See [examples/README.md](examples/README.md).
 
 ```bash
-cd examples/simple  # or any example directory
+cd examples/simple
 cargo run
 ```
 
-Or run directly from the workspace root:
+Or from the workspace root:
 
 ```bash
-cargo run --example simple
+cargo run -p simple-example
 ```
 
-### Development
+## Development
 
-**Run tests:**
+Requires Rust **1.92+** (edition 2024). The repo pins stable via `rust-toolchain.toml`.
+
 ```bash
-cargo test
+cargo test --workspace --all-features
+cargo fmt --all
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo doc --no-deps --all-features
 ```
 
-**Format and lint:**
-```bash
-cargo fmt
-cargo clippy
-```
+## Documentation
 
-**Generate documentation:**
-```bash
-cargo doc --open
-```
+- [bubble-t API](docs/API-BUBBLETEA-RS.md) — core MVU framework
+- [bubble-t-widgets API](docs/API-BUBBLES-RS.md) — UI components
+- [lipgloss API](docs/API-LIPGLOSS.md) — styling and layout
 
-### Documentation
+## Inspiration and credits
 
-- **[API Reference](docs/API-BUBBLETEA-RS.md)** - Core bubbletea-rs APIs and patterns  
-- **[Widgets Guide](docs/API-BUBBLES-RS.md)** - Available components and usage
-- **[Styling Guide](docs/API-LIPGLOSS.md)** - Colors, layouts, and theming
-- **[CLAUDE.md](CLAUDE.md)** - Development guidelines and patterns
-
-## Ecosystem Status
-
-| Component | Status | Version | Notes |
-|-----------|--------|---------|-------|
-| bubbletea-rs | ✅ Active | v0.0.9 | Core framework stable |
-| bubbletea-widgets | ✅ Active | v0.1.12 | 13+ widgets available |
-| lipgloss-extras | ✅ Active | v0.1.1 | Full styling support |
-
-## Inspiration & Credits
-
-- **[Bubble Tea (Go)](https://github.com/charmbracelet/bubbletea)** - The original and inspiration
-- **[Charm](https://charm.sh)** - Beautiful CLI tools and design philosophy
-- **[Elm Architecture](https://guide.elm-lang.org/architecture/)** - Model-View-Update pattern
-
-This work draws heavily from Charmbracelet's design and spirit. If you're building in Go, you should absolutely use the original Bubble Tea. This Rust implementation aims to bring the same joy and productivity to the Rust ecosystem.
+- [Bubble Tea (Go)](https://github.com/charmbracelet/bubbletea) — original design and inspiration
+- [Charm](https://charm.sh) — CLI design philosophy
+- [Elm Architecture](https://guide.elm-lang.org/architecture/) — Model-View-Update pattern
+- Original Rust ports by [whit3rabbit](https://github.com/whit3rabbit); fork maintained by [Nexlab-One](https://github.com/Nexlab-One)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-🫧 Built with bubbles, styled with charm, powered by Rust.
+MIT — see [LICENSE](LICENSE).

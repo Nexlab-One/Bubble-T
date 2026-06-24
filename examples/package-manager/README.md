@@ -2,7 +2,7 @@
 
 <img width="1200" src="./package-manager.gif" />
 
-A package installer simulation demonstrating advanced bubbletea-rs patterns and techniques. This example serves as a comprehensive guide for developers learning bubbletea-rs.
+A package installer simulation demonstrating advanced bubble-t patterns and techniques. This example serves as a comprehensive guide for developers learning bubble-t.
 
 ## Key Learning Patterns Demonstrated
 
@@ -24,7 +24,7 @@ A package installer simulation demonstrating advanced bubbletea-rs patterns and 
 
 ### 🎭 **Advanced Styling**
 - **Visual vs String Length**: Handling ANSI escape codes in layout calculations  
-- **Consistent Colors**: Using bubbletea-rs color palette (matching Charm defaults)
+- **Consistent Colors**: Using bubble-t color palette (matching Charm defaults)
 - **Gap Calculations**: Proper spacing for complex multi-component layouts
 
 ## Usage
@@ -42,14 +42,14 @@ The program will automatically quit after all packages are installed.
 
 ## Code Structure for Learning
 
-The source code is extensively commented with `## bubbletea-rs Pattern:` sections that explain:
+The source code is extensively commented with `## bubble-t Pattern:` sections that explain:
 
 - Why each pattern is used
 - How it differs from the Go version  
 - Common pitfalls and solutions
 - Performance considerations
 
-This makes it an ideal reference for developers building their own bubbletea-rs applications.
+This makes it an ideal reference for developers building their own bubble-t applications.
 
 ## What You'll See
 

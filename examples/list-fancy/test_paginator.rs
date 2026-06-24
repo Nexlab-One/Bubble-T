@@ -1,5 +1,5 @@
 // Test to check if Paginator supports dots pagination
-use bubbletea_widgets::paginator::{Model as Paginator, Type};
+use bubble_t_widgets::paginator::{Model as Paginator, Type};
 
 fn main() {
     let mut paginator = Paginator::new();

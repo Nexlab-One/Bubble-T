@@ -1,13 +1,11 @@
 // Paginator Example - Matches the Go Bubble Tea paginator example
 //
-// A simple program demonstrating the paginator component from the bubbletea-widgets library.
+// A simple program demonstrating the paginator component from the bubble-t-widgets library.
 
-use bubbletea_rs::{
-    window_size, Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg,
-};
-use bubbletea_widgets::paginator::{Model as Paginator, Type};
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, window_size};
+use bubble_t_widgets::paginator::{Model as Paginator, Type};
 use crossterm::event::{KeyCode, KeyModifiers};
-use lipgloss_extras::lipgloss::{renderer, Color, ColorProfileKind, Style};
+use lipgloss_extras::lipgloss::{Color, ColorProfileKind, Style, renderer};
 
 // Synthetic message used to trigger the initial render immediately after startup.
 struct InitRenderMsg;
@@ -76,10 +74,10 @@ impl BubbleTeaModel for Model {
         if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
             match key_msg.key {
                 KeyCode::Char('q') | KeyCode::Esc => {
-                    return Some(bubbletea_rs::quit());
+                    return Some(bubble_t::quit());
                 }
                 KeyCode::Char('c') if key_msg.modifiers.contains(KeyModifiers::CONTROL) => {
-                    return Some(bubbletea_rs::quit());
+                    return Some(bubble_t::quit());
                 }
                 // Handle navigation keys manually
                 KeyCode::Left | KeyCode::Char('h') => {

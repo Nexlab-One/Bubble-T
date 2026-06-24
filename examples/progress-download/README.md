@@ -48,7 +48,7 @@ cargo run --example progress-download -- --url https://httpbin.org/bytes/102400
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{batch, quit, sequence, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::{batch, quit, sequence, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
 ```
 
 - Background async operations with progress reporting

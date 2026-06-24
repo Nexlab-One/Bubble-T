@@ -1,15 +1,15 @@
 [package]
 name = "package-manager-example"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [[bin]]
 name = "package-manager"
 path = "main.rs"
 
 [dependencies]
-bubbletea-rs = { path = "../.." }
-lipgloss-extras = { version = "0.1.1", features = ["full"] }
-crossterm = "0.29"
-tokio = { version = "1.0", features = ["full"] }
-rand = "0.9"
+bubble-t = { workspace = true }
+lipgloss-extras = { workspace = true, features = ["full"] }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+rand = { workspace = true }

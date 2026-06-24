@@ -1,24 +1,24 @@
 //! Progress Animated Example
 //!
 //! Demonstrates:
-//! - Animated progress bar with gradient colors using bubbletea-widgets styling
+//! - Animated progress bar with gradient colors using bubble-t-widgets styling
 //! - Progress increments by 25% every second with smooth animation
 //! - Window resize handling for progress bar sizing  
 //! - Built-in progress bar animation system with frame messages
 //! - Automatic completion and exit when reaching 100%
-//! - Proper key binding management using bubbletea-widgets::key
+//! - Proper key binding management using bubble-t-widgets::key
 //!
-//! This example shows how to integrate bubbletea-widgets with custom progress
+//! This example shows how to integrate bubble-t-widgets with custom progress
 //! animation, creating visually appealing progress indicators that match
 //! the Go Bubble Tea version's behavior and visual style.
 //!
 //! This is a faithful port of the Go Bubble Tea progress-animated example,
-//! modernized to use bubbletea-widgets for key handling while maintaining
+//! modernized to use bubble-t-widgets for key handling while maintaining
 //! the custom animated progress implementation for precise control.
 
-use bubbletea_rs::gradient::gradient_filled_segment;
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t::gradient::gradient_filled_segment;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, batch, quit, tick};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -40,7 +40,7 @@ pub struct ProgressTickMsg;
 #[derive(Debug)]
 pub struct ProgressFrameMsg;
 
-/// Animated progress bar with smooth transitions using bubbletea-widgets styling
+/// Animated progress bar with smooth transitions using bubble-t-widgets styling
 #[derive(Debug)]
 pub struct AnimatedProgressBar {
     pub width: usize,
@@ -49,6 +49,12 @@ pub struct AnimatedProgressBar {
     pub filled_char: char,
     pub empty_char: char,
     pub animation_speed: f64,
+}
+
+impl Default for AnimatedProgressBar {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AnimatedProgressBar {
@@ -63,7 +69,7 @@ impl AnimatedProgressBar {
         }
     }
 
-    /// Set target percentage for animation (matching bubbletea-widgets progress API)
+    /// Set target percentage for animation (matching bubble-t-widgets progress API)
     pub fn set_percent(&mut self, percent: f64) -> Option<Cmd> {
         let old_target = self.target_percent;
         self.target_percent = percent.clamp(0.0, 1.0);
@@ -93,7 +99,7 @@ impl AnimatedProgressBar {
         }
     }
 
-    /// Increment target percentage by amount (matching bubbletea-widgets progress API)
+    /// Increment target percentage by amount (matching bubble-t-widgets progress API)
     pub fn incr_percent(&mut self, amount: f64) -> Option<Cmd> {
         self.set_percent(self.target_percent + amount)
     }
@@ -112,11 +118,7 @@ impl AnimatedProgressBar {
                 exponential_step
             } else {
                 // Use minimum step with correct sign when exponential becomes too small
-                if diff > 0.0 {
-                    MIN_STEP
-                } else {
-                    -MIN_STEP
-                }
+                if diff > 0.0 { MIN_STEP } else { -MIN_STEP }
             };
 
             // Check if this step would overshoot the target
@@ -150,7 +152,7 @@ impl AnimatedProgressBar {
         }
     }
 
-    /// Get current animated percentage (matching bubbletea-widgets progress API)
+    /// Get current animated percentage (matching bubble-t-widgets progress API)
     pub fn percent(&self) -> f64 {
         self.current_percent
     }
@@ -161,7 +163,7 @@ impl AnimatedProgressBar {
         let filled_width = (self.width as f64 * percent).round() as usize;
         let empty_width = self.width.saturating_sub(filled_width);
 
-        // Use bubbletea-rs gradient colors (matching Go's default gradient)
+        // Use bubble-t gradient colors (matching Go's default gradient)
         let filled_str = gradient_filled_segment(filled_width, self.filled_char);
 
         let empty_str = self.empty_char.to_string().repeat(empty_width);
@@ -179,16 +181,22 @@ impl AnimatedProgressBar {
     }
 }
 
-/// The application state - using bubbletea-widgets key bindings
+/// The application state - using bubble-t-widgets key bindings
 #[derive(Debug)]
 pub struct ProgressAnimatedModel {
     pub progress: AnimatedProgressBar,
     pub quit_key_binding: Binding,
 }
 
+impl Default for ProgressAnimatedModel {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProgressAnimatedModel {
     pub fn new() -> Self {
-        // Set up proper key bindings using bubbletea-widgets
+        // Set up proper key bindings using bubble-t-widgets
         let quit_key_binding = new_binding(vec![
             with_keys_str(&["q", "esc", "ctrl+c"]),
             with_help("any key", "quit"),

@@ -11,14 +11,34 @@
 //! - Rolling buffer of last 5 completed tasks with emojis
 //! - Proper logging: stderr in daemon mode, discarded in TUI mode
 
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
 use clap::{Arg, Command as ClapCommand};
 use lipgloss_extras::lipgloss::{Color, Style};
-use log::{info, warn};
-use rand::Rng;
-use std::io;
-use std::os::unix::io::AsRawFd;
+use log::{Level, LevelFilter, Log, Metadata, Record, info, warn};
+use rand::RngExt;
+use std::io::{self, IsTerminal};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
+
+static DAEMON_LOGGING: AtomicBool = AtomicBool::new(false);
+
+struct ExampleLogger;
+
+impl Log for ExampleLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= Level::Info
+    }
+
+    fn log(&self, record: &Record) {
+        if DAEMON_LOGGING.load(Ordering::Relaxed) && self.enabled(record.metadata()) {
+            eprintln!("[{}] {}", record.level(), record.args());
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+static LOGGER: ExampleLogger = ExampleLogger;
 
 /// Message sent when a pretend process completes
 #[derive(Debug)]
@@ -183,8 +203,8 @@ fn run_pretend_process() -> Cmd {
     Box::pin(async {
         // Generate random values before the async block to avoid Send issues
         let pause_ms = {
-            let mut rng = rand::thread_rng();
-            rng.gen_range(100..=999) // 100-999ms like Go version
+            let mut rng = rand::rng();
+            rng.random_range(100..=999) // 100-999ms like Go version
         };
         let emoji = random_emoji();
         let pause = Duration::from_millis(pause_ms);
@@ -204,30 +224,25 @@ fn random_emoji() -> String {
         "🍦", "🧋", "🍡", "🤠", "👾", "😭", "🦊", "🐯", "🦆", "🥨", "🎏", "🍔", "🍒", "🍥", "🎮",
         "📦", "🦁", "🐶", "🐸", "🍕", "🥐", "🧲", "🚒", "🥇", "🏆", "🌽",
     ];
-    let mut rng = rand::thread_rng();
-    let index = rng.gen_range(0..emojis.len());
+    let mut rng = rand::rng();
+    let index = rng.random_range(0..emojis.len());
     emojis[index].to_string()
 }
 
-/// Check if stdout is a TTY using libc::isatty
-fn is_tty() -> bool {
-    let stdout_fd = io::stdout().as_raw_fd();
-    unsafe { libc::isatty(stdout_fd) == 1 }
+/// Check if stdout is a TTY
+fn is_tty_stdout() -> bool {
+    io::stdout().is_terminal()
 }
 
 /// Configure logging based on mode
 fn setup_logging(daemon_mode: bool) {
-    if daemon_mode {
-        // In daemon mode, log to stderr
-        env_logger::Builder::from_default_env()
-            .target(env_logger::Target::Stderr)
-            .init();
+    DAEMON_LOGGING.store(daemon_mode, Ordering::Relaxed);
+    let _ = log::set_logger(&LOGGER);
+    log::set_max_level(if daemon_mode {
+        LevelFilter::Info
     } else {
-        // In TUI mode, discard log output
-        env_logger::Builder::from_default_env()
-            .target(env_logger::Target::Pipe(Box::new(io::sink())))
-            .init();
-    }
+        LevelFilter::Off
+    });
 }
 
 #[tokio::main]
@@ -245,7 +260,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     let daemon_mode = matches.get_flag("daemon");
-    let force_daemon = daemon_mode || !is_tty();
+    let force_daemon = daemon_mode || !is_tty_stdout();
 
     // Setup logging
     setup_logging(force_daemon);

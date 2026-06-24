@@ -11,7 +11,7 @@ A comprehensive demonstration of the help system and key binding management, sho
 - **Visual Navigation**: Arrow key movement with position display
 - **Responsive Layout**: Help text adapts to terminal width
 - **Professional Styling**: Color-coded help text and status display
-- **Widget Integration**: Uses bubbletea-widgets help system
+- **Widget Integration**: Uses bubble-t-widgets help system
 
 ## Running the Example
 
@@ -46,13 +46,13 @@ cargo run --example help
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::{quit, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
 ```
 
 **Help Widget System:**
 ```rust
-use bubbletea_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
-use bubbletea_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap};
+use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
+use bubble_t_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap};
 ```
 
 - `HelpModel`: Pre-built help display widget
@@ -323,7 +323,7 @@ fn test_help_modes() {
 ## Files
 
 - `main.rs` — Complete help system with key binding management
-- `Cargo.toml` — Dependencies including bubbletea-widgets
+- `Cargo.toml` — Dependencies including bubble-t-widgets
 - `help.gif` — Demo showing help toggle and navigation
 - `README.md` — This documentation
 

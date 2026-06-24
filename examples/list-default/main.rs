@@ -1,16 +1,14 @@
 // List Default Example - Matches the Go Bubble Tea list-default example
 //
 // This is a minimal implementation that matches the simplicity of the Go version.
-// The rich help text is provided automatically by bubbletea-widgets.
+// The rich help text is provided automatically by bubble-t-widgets.
 
-use bubbletea_rs::{
-    window_size, Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg,
-};
-use bubbletea_widgets::list::{DefaultDelegate, DefaultItem, Model as List};
-use bubbletea_widgets::paginator::Type as PaginatorType;
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, window_size};
+use bubble_t_widgets::list::{DefaultDelegate, DefaultItem, Model as List};
+use bubble_t_widgets::paginator::Type as PaginatorType;
 use crossterm::event::{KeyCode, KeyModifiers};
-use lipgloss_extras::lipgloss::renderer::{self, ColorProfileKind};
 use lipgloss_extras::lipgloss::Style;
+use lipgloss_extras::lipgloss::renderer::{self, ColorProfileKind};
 
 // Synthetic message used to trigger the initial render immediately after startup.
 struct InitRenderMsg;
@@ -87,12 +85,11 @@ impl BubbleTeaModel for Model {
         }
 
         // Handle Ctrl+C like the Go version (only custom key handling)
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if key_msg.key == KeyCode::Char('c')
-                && key_msg.modifiers.contains(KeyModifiers::CONTROL)
-            {
-                return Some(bubbletea_rs::quit());
-            }
+        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>()
+            && key_msg.key == KeyCode::Char('c')
+            && key_msg.modifiers.contains(KeyModifiers::CONTROL)
+        {
+            return Some(bubble_t::quit());
         }
 
         // Handle window size like Go version

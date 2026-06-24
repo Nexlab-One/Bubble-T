@@ -4,7 +4,7 @@
 //! of the `glamour` markdown renderer becomes available, we should revisit this example
 //! to use proper markdown parsing and rendering instead of manual formatting.
 //!
-//! This example demonstrates how to use a viewport widget from bubbletea-widgets
+//! This example demonstrates how to use a viewport widget from bubble-t-widgets
 //! to display scrollable markdown-style content with lipgloss styling. Key features:
 //!
 //! - **Viewport Component**: Scrollable content display with borders and padding
@@ -17,12 +17,12 @@
 //! markdown formatting with colors since Rust doesn't have a direct glamour equivalent.
 //! We simulate glamour rendering by applying colors and styling to different markdown elements.
 
-use bubbletea_rs::{quit, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::{
-    key::{new_binding, with_help, with_keys_str, Binding},
+use bubble_t::{KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::{
+    key::{Binding, new_binding, with_help, with_keys_str},
     viewport,
 };
-use lipgloss_extras::lipgloss::{border, Color, Style};
+use lipgloss_extras::lipgloss::{Color, Style, border};
 use lipgloss_extras::table::Table;
 
 /// Simulates glamour markdown rendering with colors and formatting
@@ -228,7 +228,7 @@ impl GlamourModel {
 }
 
 impl Model for GlamourModel {
-    fn init() -> (Self, Option<bubbletea_rs::Cmd>) {
+    fn init() -> (Self, Option<bubble_t::Cmd>) {
         match GlamourModel::new() {
             Ok(model) => (model, None),
             Err(e) => {
@@ -238,12 +238,12 @@ impl Model for GlamourModel {
         }
     }
 
-    fn update(&mut self, msg: Msg) -> Option<bubbletea_rs::Cmd> {
+    fn update(&mut self, msg: Msg) -> Option<bubble_t::Cmd> {
         // Handle keyboard input - check for quit keys first
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keys.quit.matches(key_msg) {
-                return Some(quit());
-            }
+        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>()
+            && self.keys.quit.matches(key_msg)
+        {
+            return Some(quit());
         }
 
         // Pass all other messages to the viewport for scrolling

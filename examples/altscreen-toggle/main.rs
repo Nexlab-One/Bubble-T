@@ -4,11 +4,11 @@
 //! It toggles between the inline screen and the alternate screen with the
 //! spacebar, supports suspend/resume with Ctrl+Z, and quits with q/esc.
 
-use bubbletea_rs::{
-    enter_alt_screen, exit_alt_screen, quit, suspend, Cmd, KeyMsg, Model, Msg, Program, QuitMsg,
-    ResumeMsg,
+use bubble_t::{
+    Cmd, KeyMsg, Model, Msg, Program, QuitMsg, ResumeMsg, enter_alt_screen, exit_alt_screen, quit,
+    suspend,
 };
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use lipgloss_extras::lipgloss::{Color, Style};
 
 // Synthetic message used to trigger the initial render immediately after startup.

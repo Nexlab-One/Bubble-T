@@ -49,7 +49,7 @@ cargo run --example suspend
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{interrupt, quit, suspend, Cmd, KeyMsg, Model, Msg, Program, ResumeMsg};
+use bubble_t::{interrupt, quit, suspend, Cmd, KeyMsg, Model, Msg, Program, ResumeMsg};
 ```
 
 - `suspend()`: Command to suspend the application
@@ -210,7 +210,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Normal exit
             println!("Goodbye!");
         }
-        Err(bubbletea_rs::Error::Interrupted) => {
+        Err(bubble_t::Error::Interrupted) => {
             // Ctrl+C interrupt - different exit code
             process::exit(130);
         }

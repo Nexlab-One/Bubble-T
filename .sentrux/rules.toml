@@ -1,0 +1,21 @@
+# Sentrux structural rules for the bubble-t monorepo
+
+[quality]
+min_signal = 6000
+
+[modularity]
+max_fan_out = 25
+max_file_lines = 2500
+
+[acyclicity]
+allow_cycles = false
+
+[depth]
+max_import_depth = 8
+
+[equality]
+max_cyclomatic_complexity = 40
+max_function_lines = 200
+
+[redundancy]
+warn_dead_code = true

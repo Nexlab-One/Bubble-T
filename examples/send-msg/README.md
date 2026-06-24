@@ -2,7 +2,7 @@
 
 <img width="1200" src="./send-msg.gif" />
 
-A demonstration of external message sending patterns, showing how to send messages to a running bubbletea-rs program from background tasks, external processes, or other parts of your application.
+A demonstration of external message sending patterns, showing how to send messages to a running bubble-t program from background tasks, external processes, or other parts of your application.
 
 ## Features
 
@@ -41,7 +41,7 @@ cargo run --example send-msg
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - Messages can be sent from any async context

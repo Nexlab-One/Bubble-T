@@ -133,7 +133,7 @@ let visible_text = &line[horizontal_offset..horizontal_offset + width];
 ## 🏗️ Architecture Overview
 
 ### Custom TextArea Implementation
-We built a custom `TextArea` instead of using `bubbletea-widgets::textarea` because we needed:
+We built a custom `TextArea` instead of using `bubble-t-widgets::textarea` because we needed:
 - Precise control over line number rendering and alignment
 - Complex cursor line highlighting with ANSI escape code management  
 - End-of-buffer markers ("~") for empty lines

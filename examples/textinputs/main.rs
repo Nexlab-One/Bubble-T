@@ -1,10 +1,10 @@
-//! Text Inputs Example (Multiple Fields) using bubbletea-widgets
+//! Text Inputs Example (Multiple Fields) using bubble-t-widgets
 //!
 //! Mirrors the Go Bubbles example with three inputs and a submit button.
 
-use bubbletea_rs::command::batch;
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::{cursor, key, textinput};
+use bubble_t::command::batch;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::{cursor, key, textinput};
 use lipgloss_extras::lipgloss::{Color, Style};
 
 struct ModelTextInputs {
@@ -27,7 +27,7 @@ impl ModelTextInputs {
             // cursor.text_style is for the character underneath when cursor is hidden
             ti.cursor.style = Style::new(); // Default cursor block style
             ti.cursor.text_style = Style::new(); // Default text style when cursor hidden
-                                                 // Make sure cursor mode is set to blink
+            // Make sure cursor mode is set to blink
             let _ = ti.cursor.set_mode(cursor::Mode::Blink);
             ti.set_char_limit(32);
             // Explicitly set text_style to default to avoid conflicts
@@ -35,7 +35,7 @@ impl ModelTextInputs {
             match i {
                 0 => {
                     ti.set_placeholder("Nickname");
-                    let _ = ti.focus();
+                    std::mem::drop(ti.focus());
                     ti.prompt_style = focused_style.clone();
                 }
                 1 => {

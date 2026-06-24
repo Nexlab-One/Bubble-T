@@ -1,7 +1,7 @@
 //! Tabs Example
 //!
 //! A sophisticated tabbed interface demonstrating advanced layout techniques,
-//! border manipulation, and keyboard navigation patterns using bubbletea-rs.
+//! border manipulation, and keyboard navigation patterns using bubble-t.
 //!
 //! This example shows how to:
 //! - Create visually connected tab interfaces with custom borders
@@ -13,21 +13,21 @@
 //! The implementation creates 5 cosmetic product tabs that users can navigate
 //! between, with each tab displaying unique content in a connected window below.
 
-// Core bubbletea-rs imports for the Model-View-Update architecture
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
+// Core bubble-t imports for the Model-View-Update architecture
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
 
 // Crossterm for keyboard input handling
 use crossterm::event::{KeyCode, KeyModifiers};
 
 // Lipgloss-extras for advanced styling and layout
 use lipgloss_extras::lipgloss::{
-    join_horizontal, // Combines multiple styled elements horizontally
-    rounded_border,  // Provides rounded corner border style
-    width,           // Calculates display width of styled content
     Border,          // Border configuration struct
     Color,           // Color management
     Style,           // Primary styling interface
     TOP,             // Alignment constant for top-aligned joining
+    join_horizontal, // Combines multiple styled elements horizontally
+    rounded_border,  // Provides rounded corner border style
+    width,           // Calculates display width of styled content
 };
 
 // Standard library imports for math operations
@@ -435,13 +435,13 @@ impl Model for TabModel {
 
 /// Entry point for the tabs example application.
 ///
-/// This function sets up and runs the bubbletea-rs program with our TabModel.
+/// This function sets up and runs the bubble-t program with our TabModel.
 /// The tokio::main attribute enables async/await support for the application.
 ///
 /// # Error Handling
 ///
 /// The function demonstrates the standard error handling pattern for
-/// bubbletea-rs applications, including proper exit codes for different
+/// bubble-t applications, including proper exit codes for different
 /// termination scenarios.
 ///
 /// # Program Builder
@@ -459,7 +459,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // PROGRAM SETUP
     // ========================================================================
 
-    // Create and configure the bubbletea-rs program
+    // Create and configure the bubble-t program
     //
     // Program::<TabModel> specifies that this program will use TabModel
     // as its application state. The type parameter ensures type safety
@@ -488,14 +488,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Unix convention: exit code 130 for SIGINT (Ctrl+C)
             // This allows shell scripts and other programs to distinguish
             // between user interruption and other types of program termination
-            bubbletea_rs::Error::Interrupted => {
+            bubble_t::Error::Interrupted => {
                 std::process::exit(130);
             }
 
             // Exit code 1 for force kill - indicates abnormal termination
             // This is used when the program needs to exit immediately
             // without normal cleanup procedures
-            bubbletea_rs::Error::ProgramKilled => {
+            bubble_t::Error::ProgramKilled => {
                 std::process::exit(1);
             }
 

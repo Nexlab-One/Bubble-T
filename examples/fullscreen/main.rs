@@ -1,7 +1,7 @@
 //! Fullscreen Example
 //!
 //! This example demonstrates how to use the alternate screen buffer (fullscreen mode)
-//! in a bubbletea-rs application. Key features:
+//! in a bubble-t application. Key features:
 //!
 //! - **Alternate Screen Buffer**: The application takes over the entire terminal screen
 //!   and restores the original terminal content when it exits
@@ -13,8 +13,8 @@
 //! take over the entire terminal (like editors, games, or full-screen interfaces)
 //! without affecting the user's existing terminal content.
 
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use std::time::Duration;
 
 /// Custom message type for timer ticks
@@ -66,10 +66,10 @@ impl Model for FullscreenModel {
 
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
         // Handle keyboard input - check if user wants to quit
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keys.quit.matches(key_msg) {
-                return Some(quit());
-            }
+        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>()
+            && self.keys.quit.matches(key_msg)
+        {
+            return Some(quit());
         }
 
         // Handle timer tick messages

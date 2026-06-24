@@ -44,7 +44,7 @@ cargo run --example textarea
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, Cmd, KeyMsg, Model, Msg, Program};
 use crossterm::event::{KeyCode, KeyModifiers};
 ```
 

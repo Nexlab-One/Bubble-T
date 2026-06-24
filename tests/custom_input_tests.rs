@@ -1,4 +1,4 @@
-use bubbletea_rs::{InputHandler, InputSource, KeyMsg, Msg};
+use bubble_t::{InputHandler, InputSource, KeyMsg, Msg};
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::io::Cursor;
 use tokio::sync::mpsc;

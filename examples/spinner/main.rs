@@ -6,7 +6,7 @@
 //! This example shows a simple loading spinner that runs forever until
 //! the user quits, demonstrating basic spinner functionality.
 
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
@@ -80,11 +80,9 @@ impl Model for SpinnerModel {
 
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
         // Handle spinner tick messages
-        if msg.downcast_ref::<SpinnerTickMsg>().is_some() {
-            if !self.quitting {
-                self.advance_frame();
-                return Some(tick(Self::interval(), |_| Box::new(SpinnerTickMsg) as Msg));
-            }
+        if msg.downcast_ref::<SpinnerTickMsg>().is_some() && !self.quitting {
+            self.advance_frame();
+            return Some(tick(Self::interval(), |_| Box::new(SpinnerTickMsg) as Msg));
         }
 
         // Handle error messages

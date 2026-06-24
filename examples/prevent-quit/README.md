@@ -4,7 +4,7 @@ A program demonstrating how to prevent users from quitting when there are unsave
 
 ## Features
 
-- Multi-line text editing using `bubbletea-widgets::textarea`
+- Multi-line text editing using `bubble-t-widgets::textarea`
 - Unsaved changes detection 
 - Quit confirmation dialog when attempting to exit with unsaved changes
 - Save functionality that clears the "unsaved changes" flag

@@ -1,14 +1,12 @@
-use bubbletea_rs::{
-    window_size, Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg,
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, window_size};
+use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
+use bubble_t_widgets::key::{
+    Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
 };
-use bubbletea_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
-use bubbletea_widgets::key::{
-    matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap,
-};
-use bubbletea_widgets::list::{Item, ItemDelegate, Model as List};
-use bubbletea_widgets::paginator::Type as PaginatorType;
+use bubble_t_widgets::list::{Item, ItemDelegate, Model as List};
+use bubble_t_widgets::paginator::Type as PaginatorType;
 use lipgloss_extras::lipgloss::{Color, Style};
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{rng, seq::SliceRandom};
 use std::fmt::Display;
 use std::sync::{Arc, Mutex};
 
@@ -26,7 +24,7 @@ fn status_message_cmd(msg: String) -> Cmd {
     Box::pin(async move { Some(Box::new(StatusMessage(msg)) as Msg) })
 }
 
-// Spinner animation not yet implemented in current bubbletea-widgets version
+// Spinner animation not yet implemented in current bubble-t-widgets version
 
 // App styles matching Go version
 fn app_style() -> Style {
@@ -197,7 +195,7 @@ impl RandomItemGenerator {
         .collect();
 
         // Shuffle both arrays once
-        let mut rng = thread_rng();
+        let mut rng = rng();
         titles.shuffle(&mut rng);
         descs.shuffle(&mut rng);
 
@@ -287,30 +285,30 @@ impl ItemDelegate<GroceryItem> for FancyDelegate {
             let keys = self.keys.lock().unwrap();
 
             // Handle choose action
-            if matches_binding(key_msg, &keys.choose) {
-                if let Some(item) = m.selected_item() {
-                    let status_msg =
-                        status_message_style().render(&format!("You chose {}", item.title));
-                    return Some(status_message_cmd(status_msg));
-                }
+            if matches_binding(key_msg, &keys.choose)
+                && let Some(item) = m.selected_item()
+            {
+                let status_msg =
+                    status_message_style().render(&format!("You chose {}", item.title));
+                return Some(status_message_cmd(status_msg));
             }
 
             // Handle remove action
-            if matches_binding(key_msg, &keys.remove) {
-                if let Some(item) = m.selected_item() {
-                    let title = item.title.clone();
-                    let index = m.cursor();
-                    m.remove_item(index);
+            if matches_binding(key_msg, &keys.remove)
+                && let Some(item) = m.selected_item()
+            {
+                let title = item.title.clone();
+                let index = m.cursor();
+                m.remove_item(index);
 
-                    // Disable remove key if list is now empty
-                    if m.items().is_empty() {
-                        drop(keys);
-                        self.keys.lock().unwrap().remove.set_enabled(false);
-                    }
-
-                    let status_msg = status_message_style().render(&format!("Deleted {}", title));
-                    return Some(status_message_cmd(status_msg));
+                // Disable remove key if list is now empty
+                if m.items().is_empty() {
+                    drop(keys);
+                    self.keys.lock().unwrap().remove.set_enabled(false);
                 }
+
+                let status_msg = status_message_style().render(&format!("Deleted {}", title));
+                return Some(status_message_cmd(status_msg));
             }
         }
         None
@@ -559,9 +557,9 @@ impl BubbleTeaModel for Model {
 
             // Handle app-level key bindings
             if matches_binding(key_msg, &self.keys.quit) {
-                return Some(bubbletea_rs::quit());
+                return Some(bubble_t::quit());
             } else if matches_binding(key_msg, &self.keys.toggle_spinner) {
-                // Note: Spinner animation may not be fully implemented in current bubbletea-widgets version
+                // Note: Spinner animation may not be fully implemented in current bubble-t-widgets version
                 // For now, just toggle visibility - the spinning animation isn't working yet
                 let show_spinner = !self.list.show_spinner();
                 self.list.set_show_spinner(show_spinner);
@@ -596,7 +594,7 @@ impl BubbleTeaModel for Model {
                     return Some(status_message_cmd(status_msg));
                 }
             } else if matches_binding(key_msg, &self.keys.force_quit) {
-                return Some(bubbletea_rs::quit());
+                return Some(bubble_t::quit());
             }
         }
 

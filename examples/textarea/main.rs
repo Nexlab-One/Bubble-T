@@ -10,7 +10,7 @@
 //! This example shows a text area where users can write multi-line text
 //! with proper cursor handling and line navigation.
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
 
 /// Message for cursor blinking
@@ -29,6 +29,12 @@ pub struct TextAreaModel {
     pub scroll_offset: usize, // TODO: For scrolling long content (not yet implemented)
     pub height: usize,        // Visible height of textarea
     pub width: usize,         // Width of textarea
+}
+
+impl Default for TextAreaModel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TextAreaModel {
@@ -174,14 +180,12 @@ impl TextAreaModel {
             // Show actual content with cursor if focused
             let mut display_lines = self.content.clone();
 
-            if self.focused && self.show_cursor {
-                if self.cursor_line < display_lines.len() {
-                    let line = &mut display_lines[self.cursor_line];
-                    if self.cursor_col >= line.len() {
-                        line.push('│');
-                    } else {
-                        line.insert(self.cursor_col, '│');
-                    }
+            if self.focused && self.show_cursor && self.cursor_line < display_lines.len() {
+                let line = &mut display_lines[self.cursor_line];
+                if self.cursor_col >= line.len() {
+                    line.push('│');
+                } else {
+                    line.insert(self.cursor_col, '│');
                 }
             }
 
@@ -197,7 +201,7 @@ impl Model for TextAreaModel {
         // Start cursor blinking
         (
             model,
-            Some(bubbletea_rs::tick(
+            Some(bubble_t::tick(
                 std::time::Duration::from_millis(500),
                 |_| Box::new(BlinkMsg) as Msg,
             )),
@@ -208,7 +212,7 @@ impl Model for TextAreaModel {
         // Handle cursor blink messages
         if msg.downcast_ref::<BlinkMsg>().is_some() {
             self.show_cursor = !self.show_cursor;
-            return Some(bubbletea_rs::tick(
+            return Some(bubble_t::tick(
                 std::time::Duration::from_millis(500),
                 |_| Box::new(BlinkMsg) as Msg,
             ));
@@ -286,7 +290,7 @@ impl Model for TextAreaModel {
         let display_content = self.get_display_content();
 
         // Create bordered textarea view
-        view.push_str("┌");
+        view.push('┌');
         view.push_str(&"─".repeat(self.width));
         view.push_str("┐\n");
 
@@ -323,7 +327,7 @@ impl Model for TextAreaModel {
             view.push('\n');
         }
 
-        view.push_str("└");
+        view.push('└');
         view.push_str(&"─".repeat(self.width));
         view.push_str("┘\n");
 

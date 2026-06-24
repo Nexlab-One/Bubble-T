@@ -1,12 +1,12 @@
 [package]
 name = "sequence-example"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [[bin]]
 name = "sequence"
 path = "main.rs"
 
 [dependencies]
-bubbletea-rs = { path = "../.." }
-tokio = { version = "1.0", features = ["full"] }
+bubble-t = { workspace = true }
+tokio = { workspace = true }

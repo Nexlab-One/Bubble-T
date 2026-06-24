@@ -42,12 +42,12 @@ cargo run --example glamour
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, KeyMsg, Model, Msg, Program};
 ```
 
 **Viewport Widget:**
 ```rust
-use bubbletea_widgets::viewport;
+use bubble_t_widgets::viewport;
 ```
 
 - `viewport::new()`: Create scrollable content display
@@ -268,7 +268,7 @@ show_help_viewer(help_content);
 ## Files
 
 - `main.rs` — Complete glamour-style content rendering with viewport
-- `Cargo.toml` — Dependencies including lipgloss-extras and bubbletea-widgets
+- `Cargo.toml` — Dependencies including lipgloss-extras and bubble-t-widgets
 - `glamour.gif` — Demo showing styled content and scrolling
 - `README.md` — This documentation
 

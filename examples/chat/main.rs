@@ -1,9 +1,9 @@
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
-use bubbletea_widgets::{textinput, viewport};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
+use bubble_t_widgets::{textinput, viewport};
 use lipgloss_extras::lipgloss::{Color, Style};
 
-// Port of Bubble Tea's chat example using bubbletea-widgets `viewport` and `textarea`.
+// Port of Bubble Tea's chat example using bubble-t-widgets `viewport` and `textarea`.
 
 const GAP: &str = "\n\n"; // matches the Go example (2 blank lines)
 const WELCOME_TEXT: &str = "Welcome to the chat room!\nType a message and press Enter to send.";
@@ -52,7 +52,7 @@ impl Model for ChatModel {
         ti.set_width(30);
         ti.set_char_limit(280);
         // Focus so typing works immediately
-        let _ = ti.focus();
+        std::mem::drop(ti.focus());
 
         // Use reasonable defaults for initial terminal size - WindowSizeMsg will update these
         let (initial_width, initial_height) = (80usize, 24usize);
@@ -73,7 +73,7 @@ impl Model for ChatModel {
 
         // Also request an async window size update for environments where the
         // initial synchronous size isn't available or later changes occur.
-        let window_size_cmd = bubbletea_rs::command::window_size();
+        let window_size_cmd = bubble_t::command::window_size();
 
         (
             Self {
@@ -92,7 +92,7 @@ impl Model for ChatModel {
 
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
         // Window size: update layout and recompute content wrapping
-        if let Some(ws) = msg.downcast_ref::<bubbletea_rs::WindowSizeMsg>() {
+        if let Some(ws) = msg.downcast_ref::<bubble_t::WindowSizeMsg>() {
             self.term_width = ws.width as usize;
             self.term_height = ws.height as usize;
 

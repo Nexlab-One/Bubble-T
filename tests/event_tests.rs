@@ -1,4 +1,4 @@
-use bubbletea_rs::{
+use bubble_t::{
     BlurMsg, FocusMsg, InterruptMsg, KeyMsg, MouseMsg, Msg, QuitMsg, ResumeMsg, SuspendMsg,
     WindowSizeMsg,
 };

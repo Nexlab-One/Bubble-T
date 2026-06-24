@@ -2,7 +2,7 @@
 
 <img width="1200" src="./result.gif" />
 
-A demonstration of retrieving values from a bubbletea-rs program after it exits, showing how to capture user selections and return them to the calling code for further processing.
+A demonstration of retrieving values from a bubble-t program after it exits, showing how to capture user selections and return them to the calling code for further processing.
 
 ## Features
 
@@ -42,7 +42,7 @@ This pattern is essential for building TUI utilities that need to return values 
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - `Program::run().await?` returns the final model state
@@ -50,7 +50,7 @@ use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
 
 **Key Binding System:**
 ```rust
-use bubbletea_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding};
+use bubble_t_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding};
 ```
 
 - `matches_binding()`: Check if key matches binding
@@ -282,7 +282,7 @@ async fn test_user_selection() {
 ## Files
 
 - `main.rs` — Complete menu selection with result capture
-- `Cargo.toml` — Dependencies including bubbletea-widgets
+- `Cargo.toml` — Dependencies including bubble-t-widgets
 - `result.gif` — Demo showing navigation and selection
 - `README.md` — This documentation
 

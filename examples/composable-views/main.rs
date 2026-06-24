@@ -1,7 +1,7 @@
 //! Composable Views Example
 //!
 //! This example demonstrates:
-//! - Composing multiple sub-models (timer and spinner) using bubbletea-widgets
+//! - Composing multiple sub-models (timer and spinner) using bubble-t-widgets
 //! - Focus management between different views using Tab key
 //! - Context-aware keyboard shortcuts ('n' behaves differently based on focus)
 //! - Visual styling with borders to indicate focus state
@@ -11,12 +11,12 @@
 //! with multiple styles. Users can switch focus between views and interact with
 //! each component independently.
 
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
-use bubbletea_widgets::timer;
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
+use bubble_t_widgets::timer;
 
 use lipgloss_extras::lipgloss::position::CENTER;
-use lipgloss_extras::lipgloss::{border, Color, Style};
+use lipgloss_extras::lipgloss::{Color, Style, border};
 use std::time::Duration;
 
 /// Message for spinner animation ticks
@@ -86,7 +86,7 @@ impl SpinnerStyle {
     }
 }
 
-/// Main model that composes timer and spinner using bubbletea-widgets
+/// Main model that composes timer and spinner using bubble-t-widgets
 #[derive(Debug)]
 struct MainModel {
     state: SessionState,
@@ -223,9 +223,7 @@ impl Model for MainModel {
 
         // Handle keyboard input
         if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keys.quit.matches(key_msg) {
-                return Some(quit());
-            } else if self.keys.quit_alt.matches(key_msg) {
+            if self.keys.quit.matches(key_msg) || self.keys.quit_alt.matches(key_msg) {
                 return Some(quit());
             } else if self.keys.tab.matches(key_msg) {
                 // Toggle focus between views

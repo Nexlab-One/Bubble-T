@@ -1,12 +1,12 @@
 //! Pager Example
 //!
-//! A document viewer demonstrating the viewport component from bubbletea-widgets.
+//! A document viewer demonstrating the viewport component from bubble-t-widgets.
 //! This example shows how to:
 //!
 //! ## Key Learning Patterns Demonstrated
 //!
 //! ### 📜 **Viewport Component Usage**
-//! - **Scrollable Content**: Using `bubbletea-widgets::viewport` for text display
+//! - **Scrollable Content**: Using `bubble-t-widgets::viewport` for text display
 //! - **Dynamic Content Loading**: Reading markdown files from disk
 //! - **Responsive Layout**: Adjusting viewport size based on header/footer height
 //! - **Mouse & Keyboard Navigation**: Full scrolling support
@@ -64,19 +64,19 @@
 //!
 //! Usage: cargo run --bin pager
 
-// bubbletea-rs core imports for MVU pattern
-use bubbletea_rs::{
-    quit, window_size, KeyMsg, Model as BubbleTeaModel, MouseMotion, Msg, Program, WindowSizeMsg,
+// bubble-t core imports for MVU pattern
+use bubble_t::{
+    KeyMsg, Model as BubbleTeaModel, MouseMotion, Msg, Program, WindowSizeMsg, quit, window_size,
 };
 
-// bubbletea-widgets for viewport component
-use bubbletea_widgets::viewport;
+// bubble-t-widgets for viewport component
+use bubble_t_widgets::viewport;
 
 // crossterm for keyboard input handling
 use crossterm::event::{KeyCode, KeyModifiers};
 
 // lipgloss-extras for terminal styling (borders, colors, layout)
-use lipgloss_extras::lipgloss::{border, join_horizontal, width_visible, Style, CENTER};
+use lipgloss_extras::lipgloss::{CENTER, Style, border, join_horizontal, width_visible};
 
 // Standard library imports
 use std::fs;
@@ -192,8 +192,8 @@ fn info_style() -> Style {
 
 /// The pager model containing viewport and document state
 ///
-/// ## bubbletea-rs Pattern: Viewport Integration
-/// Shows how to integrate a bubbletea-widgets component into your model:
+/// ## bubble-t Pattern: Viewport Integration
+/// Shows how to integrate a bubble-t-widgets component into your model:
 /// - The viewport handles its own scrolling state
 /// - Model tracks initialization and responsiveness
 /// - Window size changes update viewport dimensions
@@ -236,7 +236,7 @@ impl PagerModel {
 
     /// Create the header view with title and horizontal line
     ///
-    /// ## bubbletea-rs Pattern: Terminal Layout with Styled Text
+    /// ## bubble-t Pattern: Terminal Layout with Styled Text
     /// This demonstrates the CORRECT way to calculate layout with styled terminal text.
     ///
     /// **The Core Problem:**
@@ -281,7 +281,7 @@ impl PagerModel {
 
     /// Create the footer view with scroll percentage and horizontal line
     ///
-    /// ## bubbletea-rs Pattern: Scroll Percentage Display with Right Alignment
+    /// ## bubble-t Pattern: Scroll Percentage Display with Right Alignment
     /// This demonstrates creating a footer with scroll progress, mirroring the header pattern.
     ///
     /// **Layout Goal:**
@@ -368,14 +368,14 @@ impl PagerModel {
 impl BubbleTeaModel for PagerModel {
     /// Initialize the model by loading content from disk
     ///
-    /// ## bubbletea-rs Pattern: File Loading in Init
+    /// ## bubble-t Pattern: File Loading in Init
     /// Demonstrates loading external resources during initialization.
     /// Error handling here uses Result to fail fast if content is missing.
     ///
-    /// ## bubbletea-rs Pattern: Window Size Request
+    /// ## bubble-t Pattern: Window Size Request
     /// We request the window size immediately so the viewport can be properly initialized.
     /// Without this, the model would stay in "Initializing..." state forever.
-    fn init() -> (Self, Option<bubbletea_rs::Cmd>) {
+    fn init() -> (Self, Option<bubble_t::Cmd>) {
         match PagerModel::new() {
             Ok(model) => (model, Some(window_size())),
             Err(e) => {
@@ -387,10 +387,10 @@ impl BubbleTeaModel for PagerModel {
 
     /// Handle messages for navigation and window resizing
     ///
-    /// ## bubbletea-rs Pattern: Viewport Message Delegation
+    /// ## bubble-t Pattern: Viewport Message Delegation
     /// The viewport component handles most navigation messages itself.
     /// We only need to intercept quit messages and window size changes.
-    fn update(&mut self, msg: Msg) -> Option<bubbletea_rs::Cmd> {
+    fn update(&mut self, msg: Msg) -> Option<bubble_t::Cmd> {
         // Handle keyboard input for navigation and quitting
         if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
             match key_msg.key {
@@ -450,7 +450,7 @@ impl BubbleTeaModel for PagerModel {
             // Resize viewport by creating a new one with the actual terminal dimensions
             // The viewport component doesn't have resize methods, so we recreate it
             //
-            // ## bubbletea-rs Pattern: Viewport Resizing
+            // ## bubble-t Pattern: Viewport Resizing
             // When terminal size changes, we recreate the viewport with new dimensions
             self.viewport = viewport::new(
                 size_msg.width as usize,
@@ -473,7 +473,7 @@ impl BubbleTeaModel for PagerModel {
 
     /// Render the complete pager interface
     ///
-    /// ## bubbletea-rs Pattern: Structured View Composition
+    /// ## bubble-t Pattern: Structured View Composition
     /// Shows how to compose a multi-part interface:
     /// - Handle loading state gracefully
     /// - Combine header, content, and footer
@@ -499,7 +499,7 @@ impl BubbleTeaModel for PagerModel {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // ## bubbletea-rs Pattern: Full-Screen Pager Configuration
+    // ## bubble-t Pattern: Full-Screen Pager Configuration
     // This demonstrates the typical setup for a document viewer:
     // - .alt_screen(true): Use alternate screen buffer (fullscreen)
     // - .mouse_motion(): Enable mouse wheel scrolling

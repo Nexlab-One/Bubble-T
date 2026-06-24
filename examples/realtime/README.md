@@ -41,7 +41,7 @@ cargo run --example realtime
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{batch, quit, tick, Cmd, KeyMsg, Model, Msg, Program};
 ```
 
 - `batch()`: Run multiple commands concurrently

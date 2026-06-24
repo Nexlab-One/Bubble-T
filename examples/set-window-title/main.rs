@@ -11,7 +11,7 @@
 //! like tmux, screen, or certain configurations may ignore title changes.
 //! Try running directly in your terminal (not through cargo run) for best results.
 
-use bubbletea_rs::{quit, set_window_title, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, set_window_title};
 use lipgloss_extras::lipgloss::{Color, Style};
 
 /// Message for title updates

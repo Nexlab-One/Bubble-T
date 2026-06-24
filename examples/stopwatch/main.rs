@@ -1,9 +1,9 @@
 //! Stopwatch Example
 //!
 //! A direct port of the Go Bubble Tea stopwatch example demonstrating:
-//! - `bubbletea-widgets::stopwatch` for count-up timers
-//! - `bubbletea-widgets::key` for organized key binding management  
-//! - `bubbletea-widgets::help` for automatic help text generation
+//! - `bubble-t-widgets::stopwatch` for count-up timers
+//! - `bubble-t-widgets::key` for organized key binding management  
+//! - `bubble-t-widgets::help` for automatic help text generation
 //! - Start/stop/reset functionality
 //!
 //! This example closely mirrors `bubbletea/examples/stopwatch/main.go` behavior:
@@ -12,12 +12,12 @@
 //! - Reset to 00:00 with 'r'
 //! - Quit with 'q' or Ctrl+C
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program};
-use bubbletea_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
-use bubbletea_widgets::key::{
-    matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap,
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, quit};
+use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
+use bubble_t_widgets::key::{
+    Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
 };
-use bubbletea_widgets::stopwatch::{new_with_interval, Model as StopwatchModel};
+use bubble_t_widgets::stopwatch::{Model as StopwatchModel, new_with_interval};
 use std::time::Duration;
 
 /// Formats a duration to match Go's time.Duration.String() format for stopwatch display
@@ -50,6 +50,12 @@ pub struct Keymap {
     pub stop: Binding,
     pub reset: Binding,
     pub quit: Binding,
+}
+
+impl Default for Keymap {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Keymap {
@@ -85,6 +91,12 @@ impl KeyMap for Keymap {
     fn full_help(&self) -> Vec<Vec<&Binding>> {
         // Not used in this example - short help only
         vec![self.short_help()]
+    }
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

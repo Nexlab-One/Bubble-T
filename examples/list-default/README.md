@@ -2,7 +2,7 @@
 
 <img width="1200" src="./list-default.gif" />
 
-A direct Rust port of the Go Bubble Tea `list-default` example, demonstrating the List component from `bubbletea-widgets`.
+A direct Rust port of the Go Bubble Tea `list-default` example, demonstrating the List component from `bubble-t-widgets`.
 
 ## Features
 
@@ -29,7 +29,7 @@ cargo run --bin list-default
 
 ## Implementation Notes
 
-This example demonstrates the enhanced List API introduced in `bubbletea-widgets` v0.1.6:
+This example demonstrates the enhanced List API introduced in `bubble-t-widgets` v0.1.6:
 
 - `list.is_filtering()` - Check if filtering is active
 - `list.clear_filter()` - Programmatically clear filters

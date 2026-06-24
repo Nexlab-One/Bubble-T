@@ -1,5 +1,5 @@
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_rs::command::{batch, tick, window_size};
+use bubble_t::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::command::{batch, tick, window_size};
 use crossterm::event::MouseEventKind;
 use std::time::Duration;
 
@@ -58,9 +58,9 @@ impl Model for DebugModel {
             "InitMsg"
         } else if msg.downcast_ref::<FrameMsg>().is_some() {
             "FrameMsg"
-        } else if msg.downcast_ref::<bubbletea_rs::WindowSizeMsg>().is_some() {
+        } else if msg.downcast_ref::<bubble_t::WindowSizeMsg>().is_some() {
             "WindowSizeMsg"
-        } else if msg.downcast_ref::<bubbletea_rs::MouseMsg>().is_some() {
+        } else if msg.downcast_ref::<bubble_t::MouseMsg>().is_some() {
             "MouseMsg"
         } else if msg.downcast_ref::<KeyMsg>().is_some() {
             "KeyMsg"
@@ -81,7 +81,7 @@ impl Model for DebugModel {
             return Some(quit());
         }
 
-        if let Some(ws) = msg.downcast_ref::<bubbletea_rs::WindowSizeMsg>() {
+        if let Some(ws) = msg.downcast_ref::<bubble_t::WindowSizeMsg>() {
             self.got_window_size = true;
             self.width = ws.width as usize;
             self.height = ws.height as usize;
@@ -90,7 +90,7 @@ impl Model for DebugModel {
             return None;
         }
 
-        if let Some(mouse) = msg.downcast_ref::<bubbletea_rs::MouseMsg>() {
+        if let Some(mouse) = msg.downcast_ref::<bubble_t::MouseMsg>() {
             if matches!(mouse.button, MouseEventKind::Moved) {
                 self.x = mouse.x as f64;
                 self.y = mouse.y as f64;
@@ -147,7 +147,7 @@ impl Model for DebugModel {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use bubbletea_rs::MouseMotion;
+    use bubble_t::MouseMotion;
     
     let program = Program::<DebugModel>::builder()
         .alt_screen(false)

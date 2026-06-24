@@ -1,4 +1,4 @@
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, MouseMotion, MouseMsg, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, MouseMotion, MouseMsg, Msg, Program, quit};
 use crossterm::event::{KeyCode, KeyModifiers, MouseEventKind};
 
 // A simple program that opens the alternate screen buffer and displays mouse

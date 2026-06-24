@@ -1,7 +1,7 @@
 use std::env;
 
-use bubbletea_rs::{enter_alt_screen, exit_alt_screen, quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, enter_alt_screen, exit_alt_screen, quit};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 
 // Synthetic message used to trigger the initial render immediately after startup.
 #[derive(Debug)]
@@ -101,11 +101,11 @@ impl Model for ExecModel {
             if self.keys.quit.matches(key_msg) {
                 return Some(quit());
             }
-        } else if let Some(editor_msg) = msg.downcast_ref::<EditorFinishedMsg>() {
-            if let Some(err) = &editor_msg.err {
-                self.err = Some(err.clone());
-                return Some(quit());
-            }
+        } else if let Some(editor_msg) = msg.downcast_ref::<EditorFinishedMsg>()
+            && let Some(err) = &editor_msg.err
+        {
+            self.err = Some(err.clone());
+            return Some(quit());
         }
 
         None

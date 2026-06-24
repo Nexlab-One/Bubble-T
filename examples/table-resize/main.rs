@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
-use lipgloss_extras::lipgloss::{thick_border, Color, Style};
-use lipgloss_extras::table::{Table, HEADER_ROW};
+use lipgloss_extras::lipgloss::{Color, Style, thick_border};
+use lipgloss_extras::table::{HEADER_ROW, Table};
 
 #[derive(Debug)]
 struct AppModel {
@@ -294,7 +294,7 @@ impl Model for AppModel {
             match key_msg.key {
                 KeyCode::Char('q') | KeyCode::Esc => return Some(quit()),
                 KeyCode::Char('c') if key_msg.modifiers.contains(KeyModifiers::CONTROL) => {
-                    return Some(quit())
+                    return Some(quit());
                 }
                 KeyCode::Up | KeyCode::Char('k') => {
                     if self.scroll_offset > 0 {
@@ -368,7 +368,7 @@ impl Model for AppModel {
                 let type_colors = self.type_colors.clone();
                 let dim_type_colors = self.dim_type_colors.clone();
 
-                Box::new(move |row, col| {
+                Box::new(move |row: i32, col: usize| {
                     if row == HEADER_ROW {
                         return header_style.clone();
                     }
@@ -386,15 +386,12 @@ impl Model for AppModel {
                     let even = (row + 1) % 2 == 0;
 
                     // Handle type columns (TYPE 1 and TYPE 2)
-                    if col == 2 || col == 3 {
-                        let col_index = col as usize;
-                        if col_index < rows[row_index].len() {
-                            let type_name = &rows[row_index][col_index];
-                            if !type_name.is_empty() {
-                                let colors = if even { &dim_type_colors } else { &type_colors };
-                                if let Some(color) = colors.get(type_name) {
-                                    return base_style.clone().foreground(color.clone());
-                                }
+                    if (col == 2 || col == 3) && col < rows[row_index].len() {
+                        let type_name = rows[row_index][col].as_str();
+                        if !type_name.is_empty() {
+                            let colors = if even { &dim_type_colors } else { &type_colors };
+                            if let Some(color) = colors.get(type_name) {
+                                return base_style.clone().foreground(color.clone());
                             }
                         }
                     }
@@ -439,10 +436,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Run the program and handle errors
     if let Err(err) = program.run().await {
         match err {
-            bubbletea_rs::Error::Interrupted => {
+            bubble_t::Error::Interrupted => {
                 std::process::exit(130);
             }
-            bubbletea_rs::Error::ProgramKilled => {
+            bubble_t::Error::ProgramKilled => {
                 std::process::exit(1);
             }
             _ => {

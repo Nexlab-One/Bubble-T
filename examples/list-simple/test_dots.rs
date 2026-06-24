@@ -1,7 +1,7 @@
 // Test to verify dots pagination works
-use bubbletea_rs::Model;
-use bubbletea_widgets::list::{DefaultDelegate, DefaultItem, Model as List};
-use bubbletea_widgets::paginator::Type as PaginatorType;
+use bubble_t::Model;
+use bubble_t_widgets::list::{DefaultDelegate, DefaultItem, Model as List};
+use bubble_t_widgets::paginator::Type as PaginatorType;
 
 fn main() {
     // Create items to force pagination
@@ -34,7 +34,7 @@ fn main() {
 
     // Test standalone paginator to verify dots work
     println!("\nStandalone paginator test:");
-    use bubbletea_widgets::paginator::Model as Paginator;
+    use bubble_t_widgets::paginator::Model as Paginator;
     let mut paginator = Paginator::new();
     paginator.set_per_page(5);
     paginator.set_total_items(25);

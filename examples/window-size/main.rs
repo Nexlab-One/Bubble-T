@@ -9,8 +9,8 @@
 //! This example shows the current terminal dimensions and updates
 //! them in real-time when the terminal is resized.
 
-use bubbletea_rs::{quit, window_size, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit, window_size};
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 
 /// Key bindings for the window-size example
 #[derive(Debug)]

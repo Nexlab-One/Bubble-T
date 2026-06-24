@@ -2,7 +2,7 @@
 
 <img width="1200" src="./list-fancy.gif" />
 
-This example demonstrates advanced list functionality with the `bubbletea-widgets` List component, closely matching the Go Bubble Tea `list-fancy` example.
+This example demonstrates advanced list functionality with the `bubble-t-widgets` List component, closely matching the Go Bubble Tea `list-fancy` example.
 
 ## Features
 
@@ -44,7 +44,7 @@ This example demonstrates advanced list functionality with the `bubbletea-widget
 
 ## Implementation Details
 
-- Uses `bubbletea-widgets::list::List` with custom `ItemDelegate`
+- Uses `bubble-t-widgets::list::List` with custom `ItemDelegate`
 - Implements proper key binding system with help text
 - Thread-safe random item generation using `Arc<Mutex<>>`
 - Status messages with automatic timeout
@@ -73,4 +73,4 @@ The example demonstrates:
 - **Async Commands**: Status messages and item generation
 - **Styling Integration**: lipgloss-extras for consistent theming
 
-This example serves as a comprehensive reference for building feature-rich list interfaces with bubbletea-rs and bubbletea-widgets.
+This example serves as a comprehensive reference for building feature-rich list interfaces with bubble-t and bubble-t-widgets.

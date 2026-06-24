@@ -1,0 +1,38 @@
+[package]
+name = "bubble-t-widgets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "A collection of reusable TUI components for building terminal applications with bubble-t"
+license.workspace = true
+repository.workspace = true
+keywords = ["tui", "terminal", "bubbletea", "components", "ui"]
+categories = ["command-line-utilities", "gui"]
+
+[lib]
+name = "bubble_t_widgets"
+path = "src/lib.rs"
+
+[package.metadata.docs.rs]
+features = []
+no-default-features = true
+
+[dependencies]
+bubble-t = { workspace = true }
+lipgloss-extras = { workspace = true, features = ["full"] }
+crossterm = { workspace = true }
+unicode-width = { workspace = true }
+fuzzy-matcher = { workspace = true }
+arboard = { workspace = true, optional = true }
+once_cell = { workspace = true }
+unicode-segmentation = { workspace = true }
+strip-ansi-escapes = { workspace = true }
+libc = { workspace = true }
+
+[features]
+default = ["clipboard-support"]
+clipboard-support = ["arboard"]
+
+[dev-dependencies]
+tokio = { workspace = true }

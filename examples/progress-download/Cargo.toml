@@ -1,17 +1,17 @@
 [package]
 name = "progress-download"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [[bin]]
 name = "main"
 path = "main.rs"
 
 [dependencies]
-bubbletea-rs = { path = "../../" }
-crossterm = "0.29.0"
-tokio = { version = "1.25.0", features = ["full"] }
-reqwest = { version = "0.12", features = ["stream"] }
-clap = { version = "4.0", features = ["derive"] }
-futures-util = "0.3"
-lipgloss-extras = { version = "0.1.1", features = ["full"] }
+bubble-t = { workspace = true }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+clap = { workspace = true }
+futures-util = { workspace = true }
+lipgloss-extras = { workspace = true, features = ["full"] }

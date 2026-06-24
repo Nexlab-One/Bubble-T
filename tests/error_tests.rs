@@ -1,4 +1,4 @@
-use bubbletea_rs::Error;
+use bubble_t::Error;
 use std::io;
 use tokio::sync::mpsc;
 

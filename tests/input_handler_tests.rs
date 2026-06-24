@@ -1,4 +1,4 @@
-use bubbletea_rs::{InputHandler, KeyMsg, MouseMsg, Msg, WindowSizeMsg};
+use bubble_t::{InputHandler, KeyMsg, MouseMsg, Msg, WindowSizeMsg};
 use crossterm::event::{KeyCode, KeyModifiers, MouseButton, MouseEventKind};
 use std::any::Any;
 use tokio::sync::mpsc;

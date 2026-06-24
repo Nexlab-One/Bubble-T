@@ -1,4 +1,4 @@
-# Cellbuffer Example (bubbletea-rs)
+# Cellbuffer Example (bubble-t)
 
 <img width="1200" src="./cellbuffer.gif" />
 

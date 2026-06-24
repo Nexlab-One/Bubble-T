@@ -2,7 +2,7 @@
 
 <img width="1200" src="./textinputs.gif" />
 
-This example demonstrates how to create a complete form with multiple text input fields using the `bubbletea-widgets` library. Perfect for login forms, registration pages, or any multi-field input interface.
+This example demonstrates how to create a complete form with multiple text input fields using the `bubble-t-widgets` library. Perfect for login forms, registration pages, or any multi-field input interface.
 
 If you're new to TUI (Terminal User Interface) development or the Bubbletea framework, this guide will walk you through building a professional-looking form from scratch.
 
@@ -52,9 +52,9 @@ Add these to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bubbletea-rs = "0.0.9"           # The main TUI framework
-bubbletea-widgets = "0.1.12"      # Pre-built UI components including textinput
-lipgloss-extras = { version = "0.1.1", features = ["full"] }  # Styling
+bubble-t = "0.0.9"           # The main TUI framework
+bubble-t-widgets = "0.1.12"      # Pre-built UI components including textinput
+lipgloss-extras = { version = "0.1.12", features = ["full"] }  # Styling
 crossterm = "0.29"               # Terminal interaction
 tokio = { version = "1.0", features = ["full"] }  # Async runtime
 ```
@@ -142,10 +142,10 @@ fn view(&self) -> String {
 
 **Root Cause:** This was a rendering bug in the textinput widget's placeholder handling.
 
-**Solution:** Update to `bubbletea-widgets` version 0.0.8 or later. This bug has been fixed.
+**Solution:** Update to `bubble-t-widgets` version 0.0.8 or later. This bug has been fixed.
 
 ```toml
-bubbletea-widgets = "0.1.12"  # Fixed version
+bubble-t-widgets = "0.1.12"  # Fixed version
 ```
 
 ### Problem: "Cursor isn't blinking"
@@ -454,16 +454,16 @@ fn test_full_form_flow() {
 ## Related Examples and Resources
 
 - **Single Text Input**: `/examples/textinput/` - Simpler single-field example
-- **Text Area**: Use `bubbletea-widgets::textarea` for multi-line input
-- **Lists**: Use `bubbletea-widgets::list` for selection forms
-- **Tables**: Use `bubbletea-widgets::table` for data entry grids
+- **Text Area**: Use `bubble-t-widgets::textarea` for multi-line input
+- **Lists**: Use `bubble-t-widgets::list` for selection forms
+- **Tables**: Use `bubble-t-widgets::table` for data entry grids
 
 ## API Documentation
 
-- [Text Input Documentation](https://docs.rs/bubbletea-widgets/latest/bubbletea_widgets/textinput/index.html)
-- [Cursor Documentation](https://docs.rs/bubbletea-widgets/latest/bubbletea_widgets/cursor/index.html)
-- [Key Bindings Documentation](https://docs.rs/bubbletea-widgets/latest/bubbletea_widgets/key/index.html)
-- [Bubbletea-rs Framework](https://docs.rs/bubbletea-rs/latest/bubbletea_rs/)
+- [Text Input Documentation](https://docs.rs/bubble-t-widgets/latest/bubble_t_widgets/textinput/index.html)
+- [Cursor Documentation](https://docs.rs/bubble-t-widgets/latest/bubble_t_widgets/cursor/index.html)
+- [Key Bindings Documentation](https://docs.rs/bubble-t-widgets/latest/bubble_t_widgets/key/index.html)
+- [bubble-t Framework](https://docs.rs/bubble-t/latest/bubble-t/)
 
 ## Summary
 

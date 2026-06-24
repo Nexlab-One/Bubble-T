@@ -1,12 +1,12 @@
-//! File Picker Example (Rust, using bubbletea-widgets)
+//! File Picker Example (Rust, using bubble-t-widgets)
 //!
-//! Port of Bubble Tea's `file-picker` example using `bubbletea-widgets::filepicker`.
+//! Port of Bubble Tea's `file-picker` example using `bubble-t-widgets::filepicker`.
 //! This example demonstrates the improved filepicker with proper message ordering,
 //! robust viewport handling, and better user experience.
 
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::filepicker;
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t_widgets::filepicker;
+use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use std::time::Duration;
 
 /// Message type for clearing error messages after a delay
@@ -102,12 +102,12 @@ impl Model for FilePickerModel {
         };
 
         // Send a window size command to initialize the viewport properly
-        let window_size_cmd = bubbletea_rs::window_size();
+        let window_size_cmd = bubble_t::window_size();
 
         if let Some(init_cmd) = init_cmd {
             (
                 model,
-                Some(bubbletea_rs::batch(vec![init_cmd, window_size_cmd])),
+                Some(bubble_t::batch(vec![init_cmd, window_size_cmd])),
             )
         } else {
             (model, Some(window_size_cmd))
@@ -116,14 +116,13 @@ impl Model for FilePickerModel {
 
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
         // Handle quit keys
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keys.quit.matches(key_msg)
+        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>()
+            && (self.keys.quit.matches(key_msg)
                 || self.keys.quit_alt.matches(key_msg)
-                || self.keys.quit_escape.matches(key_msg)
-            {
-                self.quitting = true;
-                return Some(quit());
-            }
+                || self.keys.quit_escape.matches(key_msg))
+        {
+            self.quitting = true;
+            return Some(quit());
         }
 
         // Handle clear error message
@@ -133,7 +132,7 @@ impl Model for FilePickerModel {
         }
 
         // Forward window size messages to filepicker first
-        if msg.downcast_ref::<bubbletea_rs::WindowSizeMsg>().is_some() {
+        if msg.downcast_ref::<bubble_t::WindowSizeMsg>().is_some() {
             return self.filepicker.update(msg);
         }
 
@@ -152,7 +151,7 @@ impl Model for FilePickerModel {
             // Update the file picker and batch with clear error command
             let fp_cmd = self.filepicker.update(msg);
             if let Some(fp_cmd) = fp_cmd {
-                return Some(bubbletea_rs::batch(vec![
+                return Some(bubble_t::batch(vec![
                     fp_cmd,
                     clear_error_after(Duration::from_secs(2)),
                 ]));

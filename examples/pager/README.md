@@ -2,12 +2,12 @@
 
 <img width="1200" src="./pager.gif" />
 
-A document viewer demonstrating the viewport component from bubbletea-widgets. This example shows how to create a responsive pager with styled headers, footers, and scrollable content.
+A document viewer demonstrating the viewport component from bubble-t-widgets. This example shows how to create a responsive pager with styled headers, footers, and scrollable content.
 
 ## Key Learning Patterns Demonstrated
 
 ### 📜 **Viewport Component Usage**
-- **Scrollable Content**: Using `bubbletea-widgets::viewport` for text display
+- **Scrollable Content**: Using `bubble-t-widgets::viewport` for text display
 - **Dynamic Content Loading**: Reading markdown files from disk  
 - **Responsive Layout**: Adjusting viewport size based on header/footer height
 - **Mouse & Keyboard Navigation**: Full scrolling support

@@ -1,4 +1,4 @@
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
 use http::StatusCode;
 use std::time::Duration;

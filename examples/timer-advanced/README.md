@@ -1,6 +1,6 @@
 # Advanced Timer Example
 
-A comprehensive timer application showcasing the **bubbletea-widgets** ecosystem. This example demonstrates how to build sophisticated TUI applications using reusable widget components with proper key binding management, visual styling, and responsive layouts.
+A comprehensive timer application showcasing the **bubble-t-widgets** ecosystem. This example demonstrates how to build sophisticated TUI applications using reusable widget components with proper key binding management, visual styling, and responsive layouts.
 
 ## 🚀 Features
 
@@ -10,8 +10,8 @@ A comprehensive timer application showcasing the **bubbletea-widgets** ecosystem
 - **Short Break**: 5-minute relaxation break
 
 ### Advanced Widget Integration
-- ✅ **bubbletea-widgets::timer** - Precise countdown timers with automatic tick management (v0.0.8+ improved timing accuracy)
-- ✅ **bubbletea-widgets::key** - Organized key binding system with help text generation
+- ✅ **bubble-t-widgets::timer** - Precise countdown timers with automatic tick management (v0.0.8+ improved timing accuracy)
+- ✅ **bubble-t-widgets::key** - Organized key binding system with help text generation
 - ✅ **lipgloss-extras** - Rich visual styling with colors and formatting
 - ✅ **KeyMap trait** - Expandable help system (short and full views)
 
@@ -47,7 +47,7 @@ cargo run -p timer-advanced
 ## 🎯 What This Demonstrates
 
 ### Widget System Usage
-This example shows how to properly integrate multiple `bubbletea-widgets` components:
+This example shows how to properly integrate multiple `bubble-t-widgets` components:
 
 1. **Timer Management**: Using `timer::Model` for precise countdown functionality
 2. **Key Bindings**: Implementing `key::Binding` for organized input handling
@@ -228,7 +228,7 @@ The example demonstrates `lipgloss-extras` usage patterns:
 
 ## 📖 Further Reading
 
-- [bubbletea-widgets Documentation](https://docs.rs/bubbletea-widgets/)
+- [bubble-t-widgets Documentation](https://docs.rs/bubble-t-widgets/)
 - [lipgloss-extras Styling Guide](https://docs.rs/lipgloss-extras/)  
 - [Bubble Tea Architecture](https://github.com/charmbracelet/bubbletea)
 - [Go Bubble Tea Examples](https://github.com/charmbracelet/bubbletea/tree/master/examples)

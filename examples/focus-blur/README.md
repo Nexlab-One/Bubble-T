@@ -43,7 +43,7 @@ cargo run --example focus-blur
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, BlurMsg, FocusMsg, KeyMsg, Model, Msg, Program};
+use bubble_t::{quit, BlurMsg, FocusMsg, KeyMsg, Model, Msg, Program};
 ```
 
 - `FocusMsg`: Sent when terminal gains focus
@@ -52,7 +52,7 @@ use bubbletea_rs::{quit, BlurMsg, FocusMsg, KeyMsg, Model, Msg, Program};
 
 **Key Binding System:**
 ```rust
-use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+use bubble_t_widgets::key::{new_binding, with_help, with_keys_str, Binding};
 ```
 
 ### Architecture Walkthrough
@@ -168,11 +168,11 @@ Focus reporting requires terminal support:
 ### Event Flow
 
 1. **User switches away**: Terminal sends blur escape sequence
-2. **Framework detection**: bubbletea-rs converts to `BlurMsg`  
+2. **Framework detection**: bubble-t converts to `BlurMsg`  
 3. **Model update**: `focused = false`
 4. **View refresh**: UI shows blurred state
 5. **User returns**: Terminal sends focus escape sequence
-6. **Framework detection**: bubbletea-rs converts to `FocusMsg`
+6. **Framework detection**: bubble-t converts to `FocusMsg`
 7. **Model update**: `focused = true`
 8. **View refresh**: UI shows focused state
 

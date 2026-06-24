@@ -2,7 +2,7 @@
 
 <img width="1200" src="./timer.gif" />
 
-A direct port of the Go Bubble Tea timer example demonstrating how to use `bubbletea-widgets` components. This example closely mirrors [`bubbletea/examples/timer/main.go`](https://github.com/charmbracelet/bubbletea/blob/master/examples/timer/main.go) behavior and output.
+A direct port of the Go Bubble Tea timer example demonstrating how to use `bubble-t-widgets` components. This example closely mirrors [`bubbletea/examples/timer/main.go`](https://github.com/charmbracelet/bubbletea/blob/master/examples/timer/main.go) behavior and output.
 
 ## Features
 
@@ -15,9 +15,9 @@ A direct port of the Go Bubble Tea timer example demonstrating how to use `bubbl
 
 ## Widget Components Used
 
-- **`bubbletea-widgets::timer`**: High-precision countdown timer with automatic tick management (v0.0.8+ improved timing accuracy)
-- **`bubbletea-widgets::key`**: Organized key binding system with help text and enable/disable functionality
-- **`bubbletea-widgets::help`**: Automatic help text generation that displays available key bindings
+- **`bubble-t-widgets::timer`**: High-precision countdown timer with automatic tick management (v0.0.8+ improved timing accuracy)
+- **`bubble-t-widgets::key`**: Organized key binding system with help text and enable/disable functionality
+- **`bubble-t-widgets::help`**: Automatic help text generation that displays available key bindings
 
 ## Run
 
@@ -129,7 +129,7 @@ if let Some(_start_stop_msg) = msg.downcast_ref::<StartStopMsg>() {
 ## Key Differences from Go Version
 
 ### Help System Widget
-The Rust version now uses the `bubbletea-widgets::help` widget matching Go's `bubbles/help` package, providing automatic help text generation from key bindings with proper filtering for enabled/disabled states.
+The Rust version now uses the `bubble-t-widgets::help` widget matching Go's `bubbles/help` package, providing automatic help text generation from key bindings with proper filtering for enabled/disabled states.
 
 ### Rust-Specific Patterns
 - **Pattern Matching**: Uses `if let Some()` patterns instead of Go's type switches
@@ -155,7 +155,7 @@ For a more sophisticated timer application with multiple presets, progress bars,
 
 ### Basic Usage
 ```rust
-use bubbletea_widgets::timer::{new_with_interval, Model as TimerModel};
+use bubble_t_widgets::timer::{new_with_interval, Model as TimerModel};
 use std::time::Duration;
 
 // Create a 30-second timer with 100ms precision
@@ -180,7 +180,7 @@ fn update(&mut self, msg: Msg) -> Option<Cmd> {
 
 ### Key Integration
 ```rust
-use bubbletea_widgets::key::{new_binding, with_keys_str, with_help};
+use bubble_t_widgets::key::{new_binding, with_keys_str, with_help};
 
 let toggle_binding = new_binding(vec![
     with_keys_str(&["space"]),

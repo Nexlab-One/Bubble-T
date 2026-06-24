@@ -1,10 +1,10 @@
 //! Credit Card Form Example
 //!
-//! Demonstrates a credit card form with validation using bubbletea-widgets
+//! Demonstrates a credit card form with validation using bubble-t-widgets
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
-use bubbletea_widgets::{key, textinput};
-use lipgloss_extras::lipgloss::{join_horizontal, join_vertical, Color, Style, LEFT};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t_widgets::{key, textinput};
+use lipgloss_extras::lipgloss::{Color, LEFT, Style, join_horizontal, join_vertical};
 
 const CCN: usize = 0;
 const EXP: usize = 1;
@@ -24,7 +24,7 @@ impl CreditCardForm {
 
         // Credit Card Number
         inputs[CCN].set_placeholder("4505 **** **** 1234");
-        let _ = inputs[CCN].focus();
+        std::mem::drop(inputs[CCN].focus());
         inputs[CCN].set_char_limit(20);
         inputs[CCN].set_width(30);
         inputs[CCN].set_validate(Box::new(ccn_validator));
@@ -135,13 +135,14 @@ fn ccn_validator(s: &str) -> Result<(), String> {
         return Err("CCN is too long".to_string());
     }
 
-    if s.is_empty() || (s.len() % 5 != 0 && (!s.chars().last().unwrap().is_ascii_digit())) {
+    if s.is_empty() || (!s.len().is_multiple_of(5) && (!s.chars().last().unwrap().is_ascii_digit()))
+    {
         return Err("CCN is invalid".to_string());
     }
 
     // The last digit should be a number unless it is a multiple of 5 in which
     // case it should be a space
-    if s.len() % 5 == 0 && s.chars().last() != Some(' ') {
+    if s.len().is_multiple_of(5) && !s.ends_with(' ') {
         return Err("CCN must separate groups with spaces".to_string());
     }
 
@@ -215,7 +216,7 @@ impl Model for CreditCardForm {
             // Update focus states
             for (i, input) in self.inputs.iter_mut().enumerate() {
                 if i == self.focused {
-                    let _ = input.focus();
+                    std::mem::drop(input.focus());
                 } else {
                     input.blur();
                 }
@@ -264,7 +265,7 @@ impl Model for CreditCardForm {
             LEFT,
             &[
                 &input_style.clone().width(6).render(" EXP"),
-                &"  ",
+                "  ",
                 &input_style.clone().width(6).render("CVV"),
             ],
         );
@@ -275,7 +276,7 @@ impl Model for CreditCardForm {
                 &Style::new()
                     .width(6)
                     .render(&format!(" {}", self.inputs[EXP].view())),
-                &"  ",
+                "  ",
                 &Style::new().width(6).render(&self.inputs[CVV].view()),
             ],
         );
@@ -285,12 +286,12 @@ impl Model for CreditCardForm {
         join_vertical(
             LEFT,
             &[
-                &" Total: $21.50:",
-                &"",
+                " Total: $21.50:",
+                "",
                 &card_number_section,
-                &"",
+                "",
                 &exp_cvv_section,
-                &"",
+                "",
                 &continue_style.render(" Continue ->"),
             ],
         )

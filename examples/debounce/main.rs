@@ -10,7 +10,7 @@
 //! model's state we know that the debouncing is complete and we can proceed as
 //! normal. If not, we simply ignore the inbound message.
 
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
 use std::time::Duration;
 
 /// Duration to wait for debouncing

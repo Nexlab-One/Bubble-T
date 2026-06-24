@@ -10,7 +10,7 @@ This example demonstrates how to toggle between terminal screen buffers in a TUI
 
 - **Dual Screen Modes**: Toggle between inline and alternate screen buffers
 - **Suspend/Resume Support**: Handle Ctrl+Z signal to suspend the program
-- **Key Binding System**: Structured key handling using `bubbletea_widgets::key`
+- **Key Binding System**: Structured key handling using `bubble_t_widgets::key`
 - **Immediate Rendering**: Shows content immediately after startup
 - **Styled Output**: Uses lipgloss-extras for consistent terminal styling
 
@@ -34,7 +34,7 @@ The key difference:
 
 1. **Key Bindings System**
    ```rust
-   use bubbletea_widgets::key::{new_binding, with_help, with_keys_str, Binding};
+   use bubble_t_widgets::key::{new_binding, with_help, with_keys_str, Binding};
    
    let quit = new_binding(vec![
        with_keys_str(&["q", "esc"]),

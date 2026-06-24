@@ -41,7 +41,7 @@ cargo run --example progress-static
 
 **Core Framework:**
 ```rust
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
+use bubble_t::{quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
 ```
 
 - `tick()`: Single-shot timers for progress updates
@@ -50,7 +50,7 @@ use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
 
 **Gradient Rendering:**
 ```rust
-use bubbletea_rs::gradient::gradient_filled_segment;
+use bubble_t::gradient::gradient_filled_segment;
 ```
 
 - Shared gradient helper for consistent colors across examples

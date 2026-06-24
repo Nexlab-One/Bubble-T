@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 use std::process::Command as StdCommand;
 
-use bubbletea_rs::{command, Model, Msg, Program};
+use bubble_t::{command, Model, Msg, Program};
 
 #[derive(Debug, Clone)]
 struct DummyModel;
 
 impl Model for DummyModel {
-    fn init() -> (Self, Option<bubbletea_rs::Cmd>) {
+    fn init() -> (Self, Option<bubble_t::Cmd>) {
         (Self, None)
     }
 
-    fn update(&mut self, _msg: Msg) -> Option<bubbletea_rs::Cmd> {
+    fn update(&mut self, _msg: Msg) -> Option<bubble_t::Cmd> {
         None
     }
 

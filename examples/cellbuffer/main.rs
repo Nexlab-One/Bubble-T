@@ -1,5 +1,5 @@
-use bubbletea_rs::command::{batch, tick, window_size};
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::command::{batch, tick, window_size};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
 use crossterm::event::MouseEventKind;
 use std::time::Duration;
 
@@ -142,13 +142,13 @@ fn draw_ellipse(cb: &mut CellBuffer, xc: f64, yc: f64, rx: f64, ry: f64) {
         cb.set((-x + xc) as isize, (-y + yc) as isize);
         if d1 < 0.0 {
             x += 1.0;
-            dx = dx + (2.0 * ry * ry);
+            dx += 2.0 * ry * ry;
             d1 = d1 + dx + (ry * ry);
         } else {
             x += 1.0;
             y -= 1.0;
-            dx = dx + (2.0 * ry * ry);
-            dy = dy - (2.0 * rx * rx);
+            dx += 2.0 * ry * ry;
+            dy -= 2.0 * rx * rx;
             d1 = d1 + dx - dy + (ry * ry);
         }
     }
@@ -163,13 +163,13 @@ fn draw_ellipse(cb: &mut CellBuffer, xc: f64, yc: f64, rx: f64, ry: f64) {
         cb.set((-x + xc) as isize, (-y + yc) as isize);
         if d2 > 0.0 {
             y -= 1.0;
-            dy = dy - (2.0 * rx * rx);
+            dy -= 2.0 * rx * rx;
             d2 = d2 + (rx * rx) - dy;
         } else {
             y -= 1.0;
             x += 1.0;
-            dx = dx + (2.0 * ry * ry);
-            dy = dy - (2.0 * rx * rx);
+            dx += 2.0 * ry * ry;
+            dy -= 2.0 * rx * rx;
             d2 = d2 + dx - dy + (rx * rx);
         }
     }
@@ -220,7 +220,7 @@ impl Model for CellBufferModel {
             return Some(quit());
         }
 
-        if let Some(ws) = msg.downcast_ref::<bubbletea_rs::WindowSizeMsg>() {
+        if let Some(ws) = msg.downcast_ref::<bubble_t::WindowSizeMsg>() {
             // Update target to new center if this is the first real size
             let was_default = self.cells.width() == 80 && self.cells.height() == 24;
 
@@ -236,7 +236,7 @@ impl Model for CellBufferModel {
             return None;
         }
 
-        if let Some(mouse) = msg.downcast_ref::<bubbletea_rs::MouseMsg>() {
+        if let Some(mouse) = msg.downcast_ref::<bubble_t::MouseMsg>() {
             if !self.cells.ready() {
                 return None;
             }
@@ -292,7 +292,7 @@ impl Model for CellBufferModel {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use bubbletea_rs::MouseMotion;
+    use bubble_t::MouseMotion;
 
     // Use alt screen; some terminals (e.g., Ghostty) only send full mouse
     // reporting while in the alternate screen buffer.

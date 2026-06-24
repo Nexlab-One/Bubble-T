@@ -1,4 +1,4 @@
-use bubbletea_rs::{
+use bubble_t::{
     event::{BatchCmdMsg, BatchMsgInternal},
     Cmd, DisableReportFocusMsg, EnableMouseAllMotionMsg, EnableReportFocusMsg, InterruptMsg,
     KeyMsg, Msg, PrintMsg, PrintfMsg, QuitMsg, SuspendMsg,
@@ -100,21 +100,21 @@ async fn test_command_composition() {
 
 #[tokio::test]
 async fn test_quit_command() {
-    let cmd = bubbletea_rs::command::quit();
+    let cmd = bubble_t::command::quit();
     let msg = cmd.await.unwrap();
     assert!(msg.downcast_ref::<QuitMsg>().is_some());
 }
 
 #[tokio::test]
 async fn test_interrupt_command() {
-    let cmd = bubbletea_rs::command::interrupt();
+    let cmd = bubble_t::command::interrupt();
     let msg = cmd.await.unwrap();
     assert!(msg.downcast_ref::<InterruptMsg>().is_some());
 }
 
 #[tokio::test]
 async fn test_suspend_command() {
-    let cmd = bubbletea_rs::command::suspend();
+    let cmd = bubble_t::command::suspend();
     let msg = cmd.await.unwrap();
     assert!(msg.downcast_ref::<SuspendMsg>().is_some());
 }
@@ -126,7 +126,7 @@ async fn test_batch_command() {
         key: KeyCode::Char('b'),
         modifiers: KeyModifiers::NONE,
     }) as Msg);
-    let batch_cmd = bubbletea_rs::command::batch(vec![cmd1, cmd2]);
+    let batch_cmd = bubble_t::command::batch(vec![cmd1, cmd2]);
 
     let msg = batch_cmd.await.unwrap();
     let batch_cmd_msg = msg.downcast_ref::<BatchCmdMsg>().unwrap();
@@ -140,7 +140,7 @@ async fn test_sequence_command() {
         key: KeyCode::Char('c'),
         modifiers: KeyModifiers::NONE,
     }) as Msg);
-    let sequence_cmd = bubbletea_rs::command::sequence(vec![cmd1, cmd2]);
+    let sequence_cmd = bubble_t::command::sequence(vec![cmd1, cmd2]);
 
     let msg = sequence_cmd.await.unwrap();
     let batch_msg = msg.downcast_ref::<BatchMsgInternal>().unwrap();
@@ -151,7 +151,7 @@ async fn test_sequence_command() {
 
 #[tokio::test]
 async fn test_tick_command() {
-    let cmd = bubbletea_rs::tick(Duration::from_millis(50), |_d| {
+    let cmd = bubble_t::tick(Duration::from_millis(50), |_d| {
         Box::new(KeyMsg {
             key: KeyCode::Char('t'),
             modifiers: KeyModifiers::NONE,
@@ -165,7 +165,7 @@ async fn test_tick_command() {
 #[tokio::test]
 async fn test_every_command() {
     // The every command now returns a special message that the Program handles
-    let cmd = bubbletea_rs::every(Duration::from_millis(10), move |_d| {
+    let cmd = bubble_t::every(Duration::from_millis(10), move |_d| {
         Box::new(KeyMsg {
             key: KeyCode::Char('e'),
             modifiers: KeyModifiers::NONE,
@@ -173,33 +173,33 @@ async fn test_every_command() {
     });
 
     let msg = cmd.await.unwrap();
-    assert!(msg.is::<bubbletea_rs::event::EveryMsgInternal>());
+    assert!(msg.is::<bubble_t::event::EveryMsgInternal>());
 }
 
 #[tokio::test]
 async fn test_enable_mouse_all_motion_command() {
-    let cmd = bubbletea_rs::command::enable_mouse_all_motion();
+    let cmd = bubble_t::command::enable_mouse_all_motion();
     let msg = cmd.await.unwrap();
     assert!(msg.downcast_ref::<EnableMouseAllMotionMsg>().is_some());
 }
 
 #[tokio::test]
 async fn test_enable_report_focus_command() {
-    let cmd = bubbletea_rs::command::enable_report_focus();
+    let cmd = bubble_t::command::enable_report_focus();
     let msg = cmd.await.unwrap();
     assert!(msg.downcast_ref::<EnableReportFocusMsg>().is_some());
 }
 
 #[tokio::test]
 async fn test_disable_report_focus_command() {
-    let cmd = bubbletea_rs::command::disable_report_focus();
+    let cmd = bubble_t::command::disable_report_focus();
     let msg = cmd.await.unwrap();
     assert!(msg.downcast_ref::<DisableReportFocusMsg>().is_some());
 }
 
 #[tokio::test]
 async fn test_println_command() {
-    let cmd = bubbletea_rs::command::println("Hello, world!".to_string());
+    let cmd = bubble_t::command::println("Hello, world!".to_string());
     let msg = cmd.await.unwrap();
     let print_msg = msg.downcast_ref::<PrintMsg>().unwrap();
     assert_eq!(print_msg.0, "Hello, world!");
@@ -207,7 +207,7 @@ async fn test_println_command() {
 
 #[tokio::test]
 async fn test_printf_command() {
-    let cmd = bubbletea_rs::command::printf("Formatted: {}".to_string());
+    let cmd = bubble_t::command::printf("Formatted: {}".to_string());
     let msg = cmd.await.unwrap();
     let printf_msg = msg.downcast_ref::<PrintfMsg>().unwrap();
     assert_eq!(printf_msg.0, "Formatted: {}");

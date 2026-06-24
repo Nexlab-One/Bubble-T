@@ -1,0 +1,16 @@
+[package]
+name = "lipgloss-tree"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A tree component for terminal user interfaces, styled with Lip Gloss."
+
+[dependencies]
+lipgloss = { workspace = true }
+unicode-width = { workspace = true }
+
+[dev-dependencies]
+lipgloss-list = { workspace = true }
+lipgloss-table = { workspace = true }

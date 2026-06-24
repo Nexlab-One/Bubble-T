@@ -2,7 +2,7 @@
 
 <img width="1200" src="./autocomplete.gif" />
 
-Interactive autocomplete UI in the terminal using `bubbletea-rs`.
+Interactive autocomplete UI in the terminal using `bubble-t`.
 
 ## What it does
 - Fetches repository names from the Charmbracelet GitHub organization
@@ -25,7 +25,7 @@ At a high level this follows the Bubble Tea MVU pattern:
    - Init-render: a no-op that just forces the first draw quickly
 4) `view` renders the input and a capped list (up to 8) of matched suggestions, highlighting the selected row.
 
-The text field, key bindings, and help are provided by `bubbletea-widgets`.
+The text field, key bindings, and help are provided by `bubble-t-widgets`.
 
 ## Key bindings
 - Type: filter suggestions based on your input
@@ -64,11 +64,11 @@ if let Ok(token) = std::env::var("GITHUB_TOKEN") {
 ```
 
 ## What we learned getting it working
-- Single crate instance matters for downcasting: Messages use `Box<dyn Any>`, so `downcast_ref::<KeyMsg>()` only succeeds if the `KeyMsg` type comes from the exact same `bubbletea-rs` crate instance as the widget. If the workspace pulls in a separate `bubbletea-rs` (e.g., via a transitive dependency), typed input can appear to be ignored. We fixed this by pinning the workspace to a single crate instance using a `[patch.crates-io]` entry in the workspace `Cargo.toml`:
+- Single crate instance matters for downcasting: Messages use `Box<dyn Any>`, so `downcast_ref::<KeyMsg>()` only succeeds if the `KeyMsg` type comes from the exact same `bubble-t` crate instance as the widget. If the workspace pulls in a separate `bubble-t` (e.g., via a transitive dependency), typed input can appear to be ignored. We fixed this by pinning the workspace to a single crate instance using a `[patch.crates-io]` entry in the workspace `Cargo.toml`:
 
 ```toml
 [patch.crates-io]
-bubbletea-rs = { path = "." }
+bubble-t = { path = "." }
 ```
 
 - Focus early: Call `text_input.focus()` in `init` so typing is immediately captured.

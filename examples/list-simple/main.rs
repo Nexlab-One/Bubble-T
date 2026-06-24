@@ -1,7 +1,7 @@
-use bubbletea_rs::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, WindowSizeMsg};
-use bubbletea_widgets::key::{matches_binding, new_binding, with_help, with_keys_str, Binding};
-use bubbletea_widgets::list::{Item, ItemDelegate, Model as List};
-use bubbletea_widgets::paginator::Type as PaginatorType;
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, WindowSizeMsg};
+use bubble_t_widgets::key::{Binding, matches_binding, new_binding, with_help, with_keys_str};
+use bubble_t_widgets::list::{Item, ItemDelegate, Model as List};
+use bubble_t_widgets::paginator::Type as PaginatorType;
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::fmt::Display;
 
@@ -160,17 +160,16 @@ impl BubbleTeaModel for Model {
         // Handle key messages using semantic bindings
         if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
             // Check semantic key bindings instead of raw key codes
-            if matches_binding(key_msg, &self.keymap.quit) {
+            if matches_binding(key_msg, &self.keymap.quit)
+                || matches_binding(key_msg, &self.keymap.force_quit)
+            {
                 self.quitting = true;
-                return Some(bubbletea_rs::quit());
-            } else if matches_binding(key_msg, &self.keymap.force_quit) {
-                self.quitting = true;
-                return Some(bubbletea_rs::quit());
+                return Some(bubble_t::quit());
             } else if matches_binding(key_msg, &self.keymap.select) {
                 if let Some(item) = self.list.selected_item() {
                     self.choice = Some(item.0.clone());
                 }
-                return Some(bubbletea_rs::quit());
+                return Some(bubble_t::quit());
             }
         }
 
@@ -198,7 +197,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     crossterm::terminal::enable_raw_mode()?;
 
     let result = {
-        let program = bubbletea_rs::Program::<Model>::builder()
+        let program = bubble_t::Program::<Model>::builder()
             .alt_screen(false) // Disable alt_screen to help with layout
             .signal_handler(true)
             .build()?;

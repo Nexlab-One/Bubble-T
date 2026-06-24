@@ -18,15 +18,15 @@
 //! - Ctrl+W: Remove current editor (minimum 1)
 //! - Esc/Ctrl+C: Quit
 
-use bubbletea_rs::{quit, Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg};
-use bubbletea_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
-use bubbletea_widgets::key::{
-    matches_binding, new_binding, with_help, with_keys_str, Binding, KeyMap,
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
+use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
+use bubble_t_widgets::key::{
+    Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
 };
 use crossterm::event::KeyCode;
 use crossterm::terminal;
 use lipgloss_extras::lipgloss::{
-    hidden_border, join_horizontal, rounded_border, Color, Style, TOP,
+    Color, Style, TOP, hidden_border, join_horizontal, rounded_border,
 };
 
 // Constants matching the Go version
@@ -92,7 +92,7 @@ fn blurred_border_style() -> Style {
 // CUSTOM TEXTAREA IMPLEMENTATION - Why We Built Our Own
 // ================================================================================================
 //
-// We implemented a custom TextArea instead of using bubbletea-widgets::textarea because:
+// We implemented a custom TextArea instead of using bubble-t-widgets::textarea because:
 // 1. We need precise control over line number rendering and styling
 // 2. We need to implement the complex cursor line highlighting (purple background)
 // 3. We need to show end-of-buffer markers ("~") like Vim/professional editors
@@ -792,7 +792,7 @@ impl Model for SplitEditorsModel {
         if cmds.is_empty() {
             None
         } else {
-            Some(bubbletea_rs::batch(cmds))
+            Some(bubble_t::batch(cmds))
         }
     }
 

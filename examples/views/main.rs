@@ -14,7 +14,7 @@
 //! similar to how the original Go example was written before the Bubbles
 //! progress component was available.
 
-use bubbletea_rs::{quit, tick, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
@@ -148,20 +148,18 @@ impl ViewsModel {
 
     /// Update loop for the second view after a choice has been made
     fn update_chosen(&mut self, msg: Msg) -> Option<Cmd> {
-        if msg.downcast_ref::<FrameMsg>().is_some() {
-            if !self.loaded {
-                self.frames += 1;
-                self.progress = ease_out_bounce(self.frames as f64 / 100.0);
-                if self.progress >= 1.0 {
-                    self.progress = 1.0;
-                    self.loaded = true;
-                    self.ticks = 3;
-                    return Some(tick(Duration::from_secs(1), |_| Box::new(TickMsg) as Msg));
-                }
-                return Some(tick(Duration::from_millis(1000 / 60), |_| {
-                    Box::new(FrameMsg) as Msg
-                }));
+        if msg.downcast_ref::<FrameMsg>().is_some() && !self.loaded {
+            self.frames += 1;
+            self.progress = ease_out_bounce(self.frames as f64 / 100.0);
+            if self.progress >= 1.0 {
+                self.progress = 1.0;
+                self.loaded = true;
+                self.ticks = 3;
+                return Some(tick(Duration::from_secs(1), |_| Box::new(TickMsg) as Msg));
             }
+            return Some(tick(Duration::from_millis(1000 / 60), |_| {
+                Box::new(FrameMsg) as Msg
+            }));
         }
 
         if msg.downcast_ref::<TickMsg>().is_some() && self.loaded {
@@ -279,8 +277,8 @@ fn progress_bar(percent: f64) -> String {
     let gradient_ramp = make_gradient_ramp("#B14FFF", "#00FFA3", PROGRESS_BAR_WIDTH);
 
     let mut full_cells = String::new();
-    for i in 0..full_size {
-        full_cells.push_str(&gradient_ramp[i]);
+    for cell in gradient_ramp.iter().take(full_size) {
+        full_cells.push_str(cell);
     }
 
     let subtle_style = Style::new().foreground(Color::from("241"));
