@@ -4,9 +4,11 @@
 
 A Rust reimagining of the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework — inspired by, and paying homage to, the original Go project from Charmbracelet.
 
+Repository: [github.com/Nexlab-One/Bubble-T](https://github.com/Nexlab-One/Bubble-T)
+
 Build terminal user interfaces with the Model-View-Update pattern, async commands, and rich styling.
 
-> **Status:** Active development. Core APIs are stabilizing under the `bubble-t` crate (formerly `bubbletea-rs` / `bubble-t`).
+> **Status:** Active development. Core APIs are stabilizing under the `bubble-t` crate (formerly `bubbletea-rs`).
 
 ## Monorepo layout
 
@@ -15,12 +17,34 @@ This repository is a single Cargo workspace containing the full Rust Bubble Tea 
 | Crate | Path | Purpose |
 |-------|------|---------|
 | **bubble-t** | `crates/bubble-t` | Core MVU framework with async runtime |
-| **bubble-t-widgets** | `crates/bubble-t-widgets` | Pre-built UI components (spinners, inputs, tables, etc.) |
+| **bubble-t-widgets** | `crates/bubble-t-widgets` | Pre-built UI components (cursor, file picker, help, list, progress, spinner, table, textarea, textinput, timer, viewport, and more) |
 | **lipgloss** | `crates/lipgloss` | Terminal styling (colors, borders, layouts) |
-| **lipgloss-list / -table / -tree** | `crates/lipgloss-*` | Styled list, table, and tree renderers |
+| **lipgloss-list** | `crates/lipgloss-list` | Styled vertical lists |
+| **lipgloss-table** | `crates/lipgloss-table` | Styled tables |
+| **lipgloss-tree** | `crates/lipgloss-tree` | Tree diagrams |
 | **lipgloss-extras** | `crates/lipgloss-extras` | Feature-gated facade over lipgloss components |
 
 ## Quick start
+
+From GitHub (current recommended install — crates are not yet on crates.io):
+
+```toml
+[dependencies]
+bubble-t = { git = "https://github.com/Nexlab-One/Bubble-T" }
+bubble-t-widgets = { git = "https://github.com/Nexlab-One/Bubble-T" }
+lipgloss-extras = { git = "https://github.com/Nexlab-One/Bubble-T", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
+```
+
+From this monorepo (path dependencies, e.g. for a new `examples/` crate):
+
+```toml
+[dependencies]
+bubble-t = { path = "../crates/bubble-t" }
+bubble-t-widgets = { path = "../crates/bubble-t-widgets" }
+lipgloss-extras = { path = "../crates/lipgloss-extras", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
+```
 
 From crates.io (when published):
 
@@ -29,16 +53,6 @@ From crates.io (when published):
 bubble-t = "0.1.12"
 bubble-t-widgets = "0.1.12"
 lipgloss-extras = { version = "0.1.12", features = ["full"] }
-tokio = { version = "1", features = ["full"] }
-```
-
-From this monorepo (path dependencies):
-
-```toml
-[dependencies]
-bubble-t = { path = "../crates/bubble-t" }
-bubble-t-widgets = { path = "../crates/bubble-t-widgets" }
-lipgloss-extras = { path = "../crates/lipgloss-extras", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -66,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Examples
 
-Forty-plus examples mirror the upstream Go Bubble Tea gallery. See [examples/README.md](examples/README.md).
+47 examples mirror the upstream Go Bubble Tea gallery. See [examples/README.md](examples/README.md).
 
 ```bash
 cd examples/simple
@@ -95,6 +109,7 @@ cargo doc --no-deps --all-features
 - [bubble-t API](docs/API-BUBBLETEA-RS.md) — core MVU framework
 - [bubble-t-widgets API](docs/API-BUBBLES-RS.md) — UI components
 - [lipgloss API](docs/API-LIPGLOSS.md) — styling and layout
+- [CHANGELOG](CHANGELOG.md) — release history
 
 ## Inspiration and credits
 

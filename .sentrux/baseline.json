@@ -1,0 +1,224 @@
+{
+  "timestamp": 1782332749.925958,
+  "quality_signal": 0.6800525192233356,
+  "coupling_score": 0.03773584905660377,
+  "cycle_count": 0,
+  "god_file_count": 0,
+  "hotspot_count": 0,
+  "complex_fn_count": 42,
+  "max_depth": 4,
+  "total_import_edges": 159,
+  "cross_module_edges": 110,
+  "complex_functions": [
+    {
+      "file": "crates/lipgloss/src/style/render.rs",
+      "func": "render",
+      "cc": 202
+    },
+    {
+      "file": "crates/lipgloss-tree/src/renderer.rs",
+      "func": "render",
+      "cc": 101
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/key.rs",
+      "func": "parse_key_string",
+      "cc": 53
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/list/mod.rs",
+      "func": "update",
+      "cc": 51
+    },
+    {
+      "file": "crates/lipgloss/src/style/rules.rs",
+      "func": "inherit",
+      "cc": 43
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/filepicker.rs",
+      "func": "update",
+      "cc": 42
+    },
+    {
+      "file": "crates/lipgloss/src/style/render.rs",
+      "func": "apply_margins",
+      "cc": 42
+    },
+    {
+      "file": "examples/split-editors/main.rs",
+      "func": "view",
+      "cc": 37
+    },
+    {
+      "file": "crates/lipgloss/src/blending.rs",
+      "func": "go_lab_to_srgb",
+      "cc": 35
+    },
+    {
+      "file": "crates/lipgloss/src/style/equality.rs",
+      "func": "is_equivalent",
+      "cc": 31
+    },
+    {
+      "file": "examples/textinputs/main.rs",
+      "func": "update",
+      "cc": 30
+    },
+    {
+      "file": "crates/bubble-t/src/program.rs",
+      "func": "run",
+      "cc": 24
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/textarea/mod.rs",
+      "func": "view",
+      "cc": 24
+    },
+    {
+      "file": "examples/split-editors/main.rs",
+      "func": "update",
+      "cc": 24
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/filepicker.rs",
+      "func": "view",
+      "cc": 23
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/list/defaultitem.rs",
+      "func": "render",
+      "cc": 23
+    },
+    {
+      "file": "examples/list-fancy/main.rs",
+      "func": "update",
+      "cc": 21
+    },
+    {
+      "file": "examples/table/main.rs",
+      "func": "update",
+      "cc": 21
+    },
+    {
+      "file": "examples/timer-advanced/main.rs",
+      "func": "update",
+      "cc": 21
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/textarea/mod.rs",
+      "func": "handle_movement_keys",
+      "cc": 20
+    },
+    {
+      "file": "crates/lipgloss-table/src/lib.rs",
+      "func": "construct_table",
+      "cc": 20
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/table.rs",
+      "func": "update",
+      "cc": 19
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/textinput/view.rs",
+      "func": "view",
+      "cc": 19
+    },
+    {
+      "file": "crates/lipgloss/src/join.rs",
+      "func": "join_vertical",
+      "cc": 19
+    },
+    {
+      "file": "crates/lipgloss-table/src/lib.rs",
+      "func": "compute_height",
+      "cc": 19
+    },
+    {
+      "file": "examples/textarea/main.rs",
+      "func": "update",
+      "cc": 19
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/textarea/mod.rs",
+      "func": "delete_word_forward",
+      "cc": 18
+    },
+    {
+      "file": "crates/lipgloss-table/src/resizing.rs",
+      "func": "shrink_to_median",
+      "cc": 18
+    },
+    {
+      "file": "examples/cellbuffer/debug_main.rs",
+      "func": "update",
+      "cc": 18
+    },
+    {
+      "file": "crates/lipgloss/src/join.rs",
+      "func": "join_horizontal",
+      "cc": 17
+    },
+    {
+      "file": "examples/composable-views/main.rs",
+      "func": "update",
+      "cc": 17
+    },
+    {
+      "file": "examples/help/main.rs",
+      "func": "update",
+      "cc": 17
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/textarea/mod.rs",
+      "func": "insert_runes_from_user_input",
+      "cc": 17
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/viewport.rs",
+      "func": "update",
+      "cc": 17
+    },
+    {
+      "file": "examples/table-resize/main.rs",
+      "func": "view",
+      "cc": 17
+    },
+    {
+      "file": "crates/lipgloss/src/color.rs",
+      "func": "resolve_color_token_for_profile",
+      "cc": 17
+    },
+    {
+      "file": "crates/bubble-t/src/input.rs",
+      "func": "run_terminal_input",
+      "cc": 17
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/stopwatch.rs",
+      "func": "format_duration",
+      "cc": 16
+    },
+    {
+      "file": "crates/lipgloss/src/utils.rs",
+      "func": "style_ranges",
+      "cc": 16
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/timer.rs",
+      "func": "format_duration",
+      "cc": 16
+    },
+    {
+      "file": "crates/bubble-t-widgets/src/textinput/methods.rs",
+      "func": "handle_deletion_keys",
+      "cc": 16
+    },
+    {
+      "file": "crates/lipgloss/src/blending.rs",
+      "func": "blend_1d",
+      "cc": 16
+    }
+  ]
+}

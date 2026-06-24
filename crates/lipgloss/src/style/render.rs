@@ -48,6 +48,54 @@ impl Style {
     /// This method efficiently builds ANSI sequences by only including codes for
     /// properties that have been explicitly set on the style, minimizing output size.
     pub fn render(&self, s: &str) -> String {
+        // Layout pass: borders, padding, wrapping, and size constraints applied
+        // to plain text before any colorization happens.
+        let rendered = self.prepare_block(s);
+
+        // Build ANSI SGR sequence from current style settings for text content.
+        let eff = self.r.clone().unwrap_or_else(|| default_renderer().clone());
+        let profile = eff.color_profile();
+        let sgr = self.build_text_sgr(profile);
+
+        let target_width = self.get_width();
+        let target_height = self.get_height();
+
+        // Determine if we need to render any borders. If so, we must not early-return.
+        let has_borders = (self.get_border_top()
+            || self.get_border_right()
+            || self.get_border_bottom()
+            || self.get_border_left())
+            && self.is_set(BORDER_STYLE_KEY);
+
+        // Check if we have margins
+        let has_margins = self.is_set(MARGIN_TOP_KEY)
+            || self.is_set(MARGIN_RIGHT_KEY)
+            || self.is_set(MARGIN_BOTTOM_KEY)
+            || self.is_set(MARGIN_LEFT_KEY);
+
+        // If no SGR codes, no width/height constraints, no borders, and no margins, we're done.
+        if sgr.is_empty() && target_width <= 0 && target_height <= 0 && !has_borders && !has_margins
+        {
+            return rendered;
+        }
+
+        // LAYOUT FIRST: build the aligned canvas, then borders, then styling.
+        let mut final_lines = self.apply_layout(&rendered, target_width, target_height);
+        final_lines = self.apply_borders(final_lines);
+        final_lines = self.apply_text_sgr_styling(final_lines, &sgr);
+
+        let result = final_lines.join("\n");
+
+        // Apply all margins as final step (matches Go implementation)
+        self.apply_margins(&result)
+    }
+
+    /// Applies the layout-affecting transforms that operate on plain text.
+    ///
+    /// This covers newline normalization, inline collapsing, the user transform,
+    /// tab expansion, max-height/width truncation, word wrapping, and horizontal
+    /// and vertical padding. The result is the text canvas prior to colorization.
+    fn prepare_block(&self, s: &str) -> String {
         // Content to render: prefer internal value if set
         let content = if !self.value.is_empty() {
             self.value.clone()
@@ -85,6 +133,16 @@ impl Style {
             rendered = rendered.replace('\t', &spaces);
         } // tabw < 0 => keep tabs as-is
 
+        rendered = self.apply_size_constraints(rendered);
+        rendered = self.apply_padding(rendered);
+        rendered
+    }
+
+    /// Applies max-height/max-width truncation and width-driven word wrapping.
+    ///
+    /// The configured width includes horizontal padding, so the wrap width is the
+    /// configured width minus left/right padding.
+    fn apply_size_constraints(&self, mut rendered: String) -> String {
         // Max height truncation
         let mh = self.get_max_height();
         if mh > 0 {
@@ -106,8 +164,6 @@ impl Style {
         }
 
         // Word wrap when width > 0
-        // The width should be the total width INCLUDING padding, so we need to
-        // subtract padding from the width before word wrapping
         let w_setting = self.get_width();
         if w_setting > 0 {
             let pad_l = if self.is_set(PADDING_LEFT_KEY) {
@@ -137,9 +193,19 @@ impl Style {
             }
         }
 
-        // Horizontal alignment is now handled in the final intelligent styling pass
+        rendered
+    }
 
-        // Padding left/right applied per line
+    /// Applies horizontal (per-line) then vertical (empty-line) padding.
+    ///
+    /// Horizontal alignment is handled later in the styling pass.
+    fn apply_padding(&self, rendered: String) -> String {
+        let rendered = self.apply_horizontal_padding(rendered);
+        self.apply_vertical_padding(rendered)
+    }
+
+    /// Prefixes/suffixes each line with the configured left/right padding spaces.
+    fn apply_horizontal_padding(&self, mut rendered: String) -> String {
         let pad_l = if self.is_set(PADDING_LEFT_KEY) {
             self.get_padding_left().max(0) as usize
         } else {
@@ -160,8 +226,13 @@ impl Style {
             }
             rendered = padded.join("\n");
         }
+        rendered
+    }
 
-        // Vertical padding (top/bottom) - add empty lines
+    /// Prepends/appends empty lines for the configured top/bottom padding.
+    ///
+    /// Padding counts are capped to bound allocations on pathological inputs.
+    fn apply_vertical_padding(&self, mut rendered: String) -> String {
         let pad_t = if self.is_set(PADDING_TOP_KEY) {
             self.get_padding_top().max(0) as usize
         } else {
@@ -175,21 +246,16 @@ impl Style {
         if pad_t > 0 || pad_b > 0 {
             let mut lines = Vec::new();
 
-            // Add top padding lines more efficiently
             if pad_t > 0 {
-                // Cap padding to prevent excessive allocations
                 let safe_pad_t = pad_t.min(1000);
                 for _ in 0..safe_pad_t {
                     lines.push(String::new());
                 }
             }
 
-            // Add existing content
             lines.extend(rendered.split('\n').map(|s| s.to_string()));
 
-            // Add bottom padding lines more efficiently
             if pad_b > 0 {
-                // Cap padding to prevent excessive allocations
                 let safe_pad_b = pad_b.min(1000);
                 for _ in 0..safe_pad_b {
                     lines.push(String::new());
@@ -198,156 +264,177 @@ impl Style {
 
             rendered = lines.join("\n");
         }
+        rendered
+    }
 
-        // NOTE: Borders and margins are now handled after layout constraints to match Go implementation
+    /// Maps a 0-255 ANSI color index to its SGR code for the 16-color profile.
+    ///
+    /// `fg` selects the foreground (30/90 base, default 39) or background (40/100
+    /// base, default 49) code space. Indices 0-7 map to the standard range, 8-15
+    /// to the bright range, already-encoded codes pass through, and anything else
+    /// falls back to the profile default.
+    fn ansi_indexed_sgr(idx: u32, fg: bool) -> String {
+        let base = if fg { 30 } else { 40 };
+        let bright_base = if fg { 82 } else { 92 };
+        let default = if fg { 39 } else { 49 };
+        if idx <= 7 {
+            format!("{}", base + idx) // standard colors
+        } else if idx <= 15 {
+            format!("{}", bright_base + idx) // bright colors
+        } else if (base..=base + 7).contains(&idx) {
+            format!("{}", idx) // already a standard ANSI code
+        } else if (base + 60..=base + 67).contains(&idx) {
+            format!("{}", idx) // already a bright ANSI code
+        } else {
+            format!("{}", default)
+        }
+    }
 
-        // Build ANSI SGR sequence from current style settings for text content.
+    /// Resolves a single border color token to its SGR code fragment.
+    ///
+    /// `fg` selects foreground (`38`) versus background (`48`) codes. Hex tokens
+    /// render as truecolor, falling back to the dark indexed code when parsing
+    /// fails; numeric tokens map through [`Self::ansi_indexed_sgr`] for the ANSI
+    /// profile and to the 256-color code otherwise. Returns `None` for tokens that
+    /// are neither hex nor numeric.
+    fn border_color_code(profile: ColorProfileKind, tok: &str, fg: bool) -> Option<String> {
+        let (truecolor_lead, indexed_lead, hex_fallback) = if fg {
+            ("38;2", "38;5", "38;5;0")
+        } else {
+            ("48;2", "48;5", "48;5;0")
+        };
+        if tok.starts_with('#') {
+            // RGB values are already 8-bit (0-255) cast to u32
+            match parse_hex_rgba(tok) {
+                Some((r, g, b, _)) => Some(format!("{};{};{};{}", truecolor_lead, r, g, b)),
+                None => Some(hex_fallback.to_string()),
+            }
+        } else if let Ok(idx) = tok.parse::<u32>() {
+            let idx = idx % 256;
+            match profile {
+                ColorProfileKind::ANSI => Some(Self::ansi_indexed_sgr(idx, fg)),
+                _ => Some(format!("{};{}", indexed_lead, idx)),
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Builds the SGR parameter list for the text body (attributes + colors).
+    ///
+    /// NOTE: Borders and margins are handled separately, after layout constraints,
+    /// to match the Go implementation.
+    fn build_text_sgr(&self, profile: ColorProfileKind) -> Vec<String> {
         let mut sgr: Vec<String> = Vec::new();
-        let eff = self.r.clone().unwrap_or_else(|| default_renderer().clone());
-        let profile = eff.color_profile();
 
-        // Text attributes
-        if self.get_attr(ATTR_BOLD) && self.is_set(BOLD_KEY) {
-            sgr.push("1".to_string());
-        }
-        if self.get_attr(ATTR_FAINT) && self.is_set(FAINT_KEY) {
-            sgr.push("2".to_string());
-        }
-        if self.get_attr(ATTR_ITALIC) && self.is_set(ITALIC_KEY) {
-            sgr.push("3".to_string());
-        }
-        if self.get_attr(ATTR_UNDERLINE) && self.is_set(UNDERLINE_KEY) {
-            sgr.push("4".to_string());
-        }
-        if self.get_attr(ATTR_BLINK) && self.is_set(BLINK_KEY) {
-            sgr.push("5".to_string());
-        }
-        if self.get_attr(ATTR_REVERSE) && self.is_set(REVERSE_KEY) {
-            sgr.push("7".to_string());
-        }
-        if self.get_attr(ATTR_STRIKETHROUGH) && self.is_set(STRIKETHROUGH_KEY) {
-            sgr.push("9".to_string());
-        }
-
-        // Foreground color
-        if !matches!(profile, ColorProfileKind::NoColor)
-            && self.is_set(FOREGROUND_KEY)
-            && let Some(ref tok) = self.fg_color
-        {
-            if tok.starts_with('#') {
-                if let Some((r, g, b, _a)) = parse_hex_rgba(tok) {
-                    match profile {
-                        ColorProfileKind::TrueColor => {
-                            // RGB values are already 8-bit (0-255) cast to u32
-                            sgr.push(format!("38;2;{};{};{}", r, g, b));
-                        }
-                        ColorProfileKind::ANSI | ColorProfileKind::ANSI256 => {
-                            sgr.push("38;5;0".to_string())
-                        }
-                        ColorProfileKind::NoColor => {}
-                    }
-                }
-            } else if let Ok(idx) = tok.parse::<u32>() {
-                let idx = idx % 256;
-                match profile {
-                    ColorProfileKind::TrueColor => {
-                        // best-effort: still use indexed if we don't have original hex
-                        sgr.push(format!("38;5;{}", idx));
-                    }
-                    ColorProfileKind::ANSI => {
-                        // For ANSI profile, handle direct ANSI codes and mapped colors
-                        if idx <= 7 {
-                            sgr.push(format!("{}", 30 + idx)); // 30-37 (standard colors)
-                        } else if idx <= 15 {
-                            sgr.push(format!("{}", 82 + idx)); // 90-97 (82+8=90, 82+15=97, bright colors)
-                        } else if (30..=37).contains(&idx) {
-                            sgr.push(format!("{}", idx)); // Direct ANSI codes 30-37
-                        } else if (90..=97).contains(&idx) {
-                            sgr.push(format!("{}", idx)); // Direct ANSI codes 90-97
-                        } else {
-                            sgr.push("39".to_string()); // default foreground
-                        }
-                    }
-                    ColorProfileKind::ANSI256 => sgr.push(format!("38;5;{}", idx)),
-                    ColorProfileKind::NoColor => {}
-                }
+        // Text attributes: (attribute bit, property key, SGR code)
+        const ATTRS: [(u32, PropKey, &str); 7] = [
+            (ATTR_BOLD, BOLD_KEY, "1"),
+            (ATTR_FAINT, FAINT_KEY, "2"),
+            (ATTR_ITALIC, ITALIC_KEY, "3"),
+            (ATTR_UNDERLINE, UNDERLINE_KEY, "4"),
+            (ATTR_BLINK, BLINK_KEY, "5"),
+            (ATTR_REVERSE, REVERSE_KEY, "7"),
+            (ATTR_STRIKETHROUGH, STRIKETHROUGH_KEY, "9"),
+        ];
+        for (attr, key, code) in ATTRS {
+            if self.get_attr(attr) && self.is_set(key) {
+                sgr.push(code.to_string());
             }
         }
 
-        // Background color
-        if !matches!(profile, ColorProfileKind::NoColor)
-            && self.is_set(BACKGROUND_KEY)
-            && let Some(ref tok) = self.bg_color
-        {
-            if tok.starts_with('#') {
-                if let Some((r, g, b, _a)) = parse_hex_rgba(tok) {
-                    match profile {
-                        ColorProfileKind::TrueColor => {
-                            // RGB values are already 8-bit (0-255) cast to u32
-                            sgr.push(format!("48;2;{};{};{}", r, g, b));
-                        }
-                        ColorProfileKind::ANSI256 => {
-                            // Convert RGB to ANSI256 background color
-                            let ansi256_idx =
-                                crate::color::rgb_to_ansi256(r as u8, g as u8, b as u8);
-                            sgr.push(format!("48;5;{}", ansi256_idx));
-                        }
-                        ColorProfileKind::ANSI => {
-                            // Convert RGB to ANSI16 background color
-                            let ansi16_idx = crate::color::rgb_to_ansi16(r as u8, g as u8, b as u8);
-                            sgr.push(format!("{}", 40 + ansi16_idx));
-                        }
-                        ColorProfileKind::NoColor => {}
-                    }
-                }
-            } else if let Ok(idx) = tok.parse::<u32>() {
-                let idx = idx % 256;
-                match profile {
-                    ColorProfileKind::TrueColor => sgr.push(format!("48;5;{}", idx)),
-                    ColorProfileKind::ANSI => {
-                        // For ANSI profile, handle direct ANSI codes and mapped colors
-                        if idx <= 7 {
-                            sgr.push(format!("{}", 40 + idx)); // 40-47 (standard colors)
-                        } else if idx <= 15 {
-                            sgr.push(format!("{}", 92 + idx)); // 100-107 (92+8=100, 92+15=107, bright colors)
-                        } else if (40..=47).contains(&idx) {
-                            sgr.push(format!("{}", idx)); // Direct ANSI codes 40-47
-                        } else if (100..=107).contains(&idx) {
-                            sgr.push(format!("{}", idx)); // Direct ANSI codes 100-107
-                        } else {
-                            sgr.push("49".to_string()); // default background
-                        }
-                    }
-                    ColorProfileKind::ANSI256 => sgr.push(format!("48;5;{}", idx)),
-                    ColorProfileKind::NoColor => {}
-                }
+        if let Some(code) = self.foreground_sgr(profile) {
+            sgr.push(code);
+        }
+        if let Some(code) = self.background_sgr(profile) {
+            sgr.push(code);
+        }
+
+        sgr
+    }
+
+    /// Resolves the foreground text color to an SGR code for the active profile.
+    ///
+    /// Hex tokens render as truecolor and collapse to the dark indexed code on the
+    /// 16/256-color profiles; numeric tokens use the indexed code, mapping through
+    /// [`Self::ansi_indexed_sgr`] for the 16-color profile.
+    fn foreground_sgr(&self, profile: ColorProfileKind) -> Option<String> {
+        if matches!(profile, ColorProfileKind::NoColor) || !self.is_set(FOREGROUND_KEY) {
+            return None;
+        }
+        let tok = self.fg_color.as_ref()?;
+        if tok.starts_with('#') {
+            // RGB values are already 8-bit (0-255) cast to u32
+            let (r, g, b, _a) = parse_hex_rgba(tok)?;
+            match profile {
+                ColorProfileKind::TrueColor => Some(format!("38;2;{};{};{}", r, g, b)),
+                ColorProfileKind::ANSI | ColorProfileKind::ANSI256 => Some("38;5;0".to_string()),
+                ColorProfileKind::NoColor => None,
             }
+        } else if let Ok(idx) = tok.parse::<u32>() {
+            let idx = idx % 256;
+            match profile {
+                // best-effort: still use indexed if we don't have original hex
+                ColorProfileKind::TrueColor | ColorProfileKind::ANSI256 => {
+                    Some(format!("38;5;{}", idx))
+                }
+                ColorProfileKind::ANSI => Some(Self::ansi_indexed_sgr(idx, true)),
+                ColorProfileKind::NoColor => None,
+            }
+        } else {
+            None
         }
+    }
 
-        // Final styling pass - "Layout First, Styling Second" approach
-        let target_width = self.get_width();
-        let target_height = self.get_height();
-        let _has_bg = self.is_set(BACKGROUND_KEY) || self.get_attr(ATTR_COLOR_WHITESPACE);
-
-        // Determine if we need to render any borders. If so, we must not early-return.
-        let has_borders = (self.get_border_top()
-            || self.get_border_right()
-            || self.get_border_bottom()
-            || self.get_border_left())
-            && self.is_set(BORDER_STYLE_KEY);
-
-        // Check if we have margins
-        let has_margins = self.is_set(MARGIN_TOP_KEY)
-            || self.is_set(MARGIN_RIGHT_KEY)
-            || self.is_set(MARGIN_BOTTOM_KEY)
-            || self.is_set(MARGIN_LEFT_KEY);
-
-        // If no SGR codes, no width/height constraints, no borders, and no margins, we're done.
-        if sgr.is_empty() && target_width <= 0 && target_height <= 0 && !has_borders && !has_margins
-        {
-            return rendered;
+    /// Resolves the background color to an SGR code for the active profile.
+    ///
+    /// Unlike the foreground, hex tokens are quantized to the nearest ANSI256 or
+    /// ANSI16 background code on the reduced-color profiles to preserve the visual
+    /// tone; numeric tokens use the indexed code or the 16-color mapping.
+    fn background_sgr(&self, profile: ColorProfileKind) -> Option<String> {
+        if matches!(profile, ColorProfileKind::NoColor) || !self.is_set(BACKGROUND_KEY) {
+            return None;
         }
+        let tok = self.bg_color.as_ref()?;
+        if tok.starts_with('#') {
+            // RGB values are already 8-bit (0-255) cast to u32
+            let (r, g, b, _a) = parse_hex_rgba(tok)?;
+            match profile {
+                ColorProfileKind::TrueColor => Some(format!("48;2;{};{};{}", r, g, b)),
+                ColorProfileKind::ANSI256 => {
+                    let ansi256_idx = crate::color::rgb_to_ansi256(r as u8, g as u8, b as u8);
+                    Some(format!("48;5;{}", ansi256_idx))
+                }
+                ColorProfileKind::ANSI => {
+                    let ansi16_idx = crate::color::rgb_to_ansi16(r as u8, g as u8, b as u8);
+                    Some(format!("{}", 40 + ansi16_idx))
+                }
+                ColorProfileKind::NoColor => None,
+            }
+        } else if let Ok(idx) = tok.parse::<u32>() {
+            let idx = idx % 256;
+            match profile {
+                ColorProfileKind::TrueColor | ColorProfileKind::ANSI256 => {
+                    Some(format!("48;5;{}", idx))
+                }
+                ColorProfileKind::ANSI => Some(Self::ansi_indexed_sgr(idx, false)),
+                ColorProfileKind::NoColor => None,
+            }
+        } else {
+            None
+        }
+    }
 
+    /// Builds the aligned, full-size canvas using the "Layout First" approach.
+    ///
+    /// Each line is padded to `target_width` according to horizontal alignment, and
+    /// the block is padded to `target_height` according to vertical alignment.
+    fn apply_layout(
+        &self,
+        rendered: &str,
+        target_width: i32,
+        target_height: i32,
+    ) -> Vec<String> {
         let lines: Vec<&str> = rendered.split('\n').collect();
         let mut final_lines = Vec::with_capacity(lines.len());
 
@@ -410,322 +497,297 @@ impl Style {
             final_lines = height_adjusted;
         }
 
-        // Apply borders after layout constraints have been applied
+        final_lines
+    }
+
+    /// Builds a horizontal (top or bottom) border edge line.
+    ///
+    /// Returns an empty string when the edge is disabled. Corner glyphs are used
+    /// only when the corresponding side border is present; otherwise the fill glyph
+    /// is substituted. A non-empty `sgr` prefix wraps the line with a reset.
+    fn horizontal_border_edge(
+        &self,
+        enabled: bool,
+        sgr: &str,
+        left_corner: &str,
+        fill: &str,
+        right_corner: &str,
+        w: usize,
+    ) -> String {
+        if !enabled {
+            return String::new();
+        }
+        let left = if self.get_border_left() {
+            left_corner
+        } else {
+            fill
+        };
+        let right = if self.get_border_right() {
+            right_corner
+        } else {
+            fill
+        };
+        let body = format!("{}{}{}", left, safe_str_repeat(fill, w), right);
+        if sgr.is_empty() {
+            body
+        } else {
+            format!("{}{}\x1b[0m", sgr, body)
+        }
+    }
+
+    /// Builds the SGR prefix for one border side from per-side then combined tokens.
+    ///
+    /// Returns an empty string for the no-color profile or when neither a
+    /// foreground nor background color resolves.
+    fn border_edge_sgr(
+        &self,
+        profile: ColorProfileKind,
+        fg_opt: &Option<String>,
+        bg_opt: &Option<String>,
+        fg_combined: &Option<String>,
+        bg_combined: &Option<String>,
+    ) -> String {
+        if matches!(profile, ColorProfileKind::NoColor) {
+            return String::new();
+        }
+        let mut parts: Vec<String> = Vec::new();
+        if let Some(tok) = fg_opt.as_ref().or(fg_combined.as_ref())
+            && let Some(code) = Self::border_color_code(profile, tok, true)
+        {
+            parts.push(code);
+        }
+        if let Some(tok) = bg_opt.as_ref().or(bg_combined.as_ref())
+            && let Some(code) = Self::border_color_code(profile, tok, false)
+        {
+            parts.push(code);
+        }
+        if parts.is_empty() {
+            String::new()
+        } else {
+            format!("\x1b[{}m", parts.join(";"))
+        }
+    }
+
+    /// Computes the SGR prefixes for all four border sides.
+    ///
+    /// Per-side colors take precedence; when no per-side color is set the main
+    /// foreground/background tokens are used as the combined fallback. Returns the
+    /// prefixes in `[top, right, bottom, left]` order.
+    fn border_side_sgrs(&self, profile: ColorProfileKind) -> [String; 4] {
+        // Use stored combined fields if set via colors.rs helpers
+        let combined_fg = self.border_top_fg_color.is_some()
+            || self.border_right_fg_color.is_some()
+            || self.border_bottom_fg_color.is_some()
+            || self.border_left_fg_color.is_some();
+        let combined_bg = self.border_top_bg_color.is_some()
+            || self.border_right_bg_color.is_some()
+            || self.border_bottom_bg_color.is_some()
+            || self.border_left_bg_color.is_some();
+        let fg_combined = if combined_fg {
+            None
+        } else {
+            self.fg_color.clone()
+        };
+        let bg_combined = if combined_bg {
+            None
+        } else {
+            self.bg_color.clone()
+        };
+
+        [
+            self.border_edge_sgr(
+                profile,
+                &self.border_top_fg_color,
+                &self.border_top_bg_color,
+                &fg_combined,
+                &bg_combined,
+            ),
+            self.border_edge_sgr(
+                profile,
+                &self.border_right_fg_color,
+                &self.border_right_bg_color,
+                &fg_combined,
+                &bg_combined,
+            ),
+            self.border_edge_sgr(
+                profile,
+                &self.border_bottom_fg_color,
+                &self.border_bottom_bg_color,
+                &fg_combined,
+                &bg_combined,
+            ),
+            self.border_edge_sgr(
+                profile,
+                &self.border_left_fg_color,
+                &self.border_left_bg_color,
+                &fg_combined,
+                &bg_combined,
+            ),
+        ]
+    }
+
+    /// Builds the middle (content) section of a bordered block.
+    ///
+    /// Each line is prefixed/suffixed with the left/right border glyphs (when
+    /// enabled) and right-padded to the widest visible line so the right border
+    /// aligns vertically.
+    fn build_border_mid(
+        &self,
+        final_lines: &[String],
+        left_sgr: &str,
+        right_sgr: &str,
+        left_glyph: &str,
+        right_glyph: &str,
+        w: usize,
+    ) -> String {
+        let reset = "\x1b[0m";
+        let left_part_base = if self.get_border_left() {
+            if left_sgr.is_empty() {
+                left_glyph.to_string()
+            } else {
+                format!("{}{}{}", left_sgr, left_glyph, reset)
+            }
+        } else {
+            String::new()
+        };
+        let right_part_base = if self.get_border_right() {
+            if right_sgr.is_empty() {
+                right_glyph.to_string()
+            } else {
+                format!("{}{}{}", right_sgr, right_glyph, reset)
+            }
+        } else {
+            String::new()
+        };
+        let mut out_lines: Vec<String> = Vec::with_capacity(final_lines.len());
+        for l in final_lines {
+            let lw = width_visible(l);
+            let pad = w.saturating_sub(lw);
+            let mut line_buf = String::with_capacity(w + 4);
+            line_buf.push_str(&left_part_base);
+            line_buf.push_str(l);
+            if pad > 0 {
+                line_buf.push_str(&safe_repeat(' ', pad));
+            }
+            line_buf.push_str(&right_part_base);
+            out_lines.push(line_buf);
+        }
+        out_lines.join("\n")
+    }
+
+    /// Wraps the laid-out canvas in border glyphs when a border style is set.
+    ///
+    /// Per-side colors fall back to the combined foreground/background tokens when
+    /// no explicit per-side color is configured. Lines are padded to the widest
+    /// visible line so the right border aligns.
+    fn apply_borders(&self, final_lines: Vec<String>) -> Vec<String> {
         let render_borders = (self.get_border_top()
             || self.get_border_right()
             || self.get_border_bottom()
             || self.get_border_left())
             && self.is_set(BORDER_STYLE_KEY);
-        if render_borders {
-            let b = self.get_border_style();
-            // Compute target width from the maximum visible width across all lines
-            let mut w: usize = 0;
-            for l in &final_lines {
-                w = w.max(width_visible(l));
-            }
-            // Determine effective renderer/profile
-            let eff = self.r.clone().unwrap_or_else(|| default_renderer().clone());
-            let profile = eff.color_profile();
-
-            // Helper to build SGR for a side using per-side then combined tokens
-            let edge_sgr = |fg_opt: &Option<String>,
-                            bg_opt: &Option<String>,
-                            fg_combined: &Option<String>,
-                            bg_combined: &Option<String>|
-             -> String {
-                if matches!(profile, ColorProfileKind::NoColor) {
-                    return String::new();
-                }
-                let fg = fg_opt.as_ref().or(fg_combined.as_ref());
-                let bg = bg_opt.as_ref().or(bg_combined.as_ref());
-                let mut parts: Vec<String> = Vec::new();
-                if let Some(tok) = fg {
-                    if tok.starts_with('#') {
-                        if let Some((r, g, b, _)) = parse_hex_rgba(tok) {
-                            // RGB values are already 8-bit (0-255) cast to u32
-                            parts.push(format!("38;2;{};{};{}", r, g, b));
-                        } else {
-                            // fallback for ANSI profiles
-                            parts.push("38;5;0".to_string());
-                        }
-                    } else if let Ok(idx) = tok.parse::<u32>() {
-                        let idx = idx % 256;
-                        match profile {
-                            ColorProfileKind::ANSI => {
-                                if idx <= 7 {
-                                    parts.push(format!("{}", 30 + idx)); // 30-37
-                                } else if idx <= 15 {
-                                    parts.push(format!("{}", 82 + idx)); // 90-97
-                                } else if (30..=37).contains(&idx) {
-                                    parts.push(format!("{}", idx)); // Direct ANSI codes 30-37
-                                } else if (90..=97).contains(&idx) {
-                                    parts.push(format!("{}", idx)); // Direct ANSI codes 90-97
-                                } else {
-                                    parts.push("39".to_string()); // default
-                                }
-                            }
-                            _ => parts.push(format!("38;5;{}", idx)),
-                        }
-                    }
-                }
-                if let Some(tok) = bg {
-                    if tok.starts_with('#') {
-                        if let Some((r, g, b, _)) = parse_hex_rgba(tok) {
-                            // RGB values are already 8-bit (0-255) cast to u32
-                            parts.push(format!("48;2;{};{};{}", r, g, b));
-                        } else {
-                            parts.push("48;5;0".to_string());
-                        }
-                    } else if let Ok(idx) = tok.parse::<u32>() {
-                        let idx = idx % 256;
-                        match profile {
-                            ColorProfileKind::ANSI => {
-                                if idx <= 7 {
-                                    parts.push(format!("{}", 40 + idx)); // 40-47
-                                } else if idx <= 15 {
-                                    parts.push(format!("{}", 92 + idx)); // 100-107
-                                } else if (40..=47).contains(&idx) {
-                                    parts.push(format!("{}", idx)); // Direct ANSI codes 40-47
-                                } else if (100..=107).contains(&idx) {
-                                    parts.push(format!("{}", idx)); // Direct ANSI codes 100-107
-                                } else {
-                                    parts.push("49".to_string()); // default
-                                }
-                            }
-                            _ => parts.push(format!("48;5;{}", idx)),
-                        }
-                    }
-                }
-                if parts.is_empty() {
-                    String::new()
-                } else {
-                    format!("\x1b[{}m", parts.join(";"))
-                }
-            };
-
-            // Use stored combined fields if set via colors.rs helpers
-            let combined_fg = self.border_top_fg_color.is_some()
-                || self.border_right_fg_color.is_some()
-                || self.border_bottom_fg_color.is_some()
-                || self.border_left_fg_color.is_some();
-            let combined_bg = self.border_top_bg_color.is_some()
-                || self.border_right_bg_color.is_some()
-                || self.border_bottom_bg_color.is_some()
-                || self.border_left_bg_color.is_some();
-            let fg_combined_ref = if combined_fg {
-                None
-            } else {
-                self.fg_color.as_ref()
-            };
-            let bg_combined_ref = if combined_bg {
-                None
-            } else {
-                self.bg_color.as_ref()
-            };
-
-            let top_sgr = edge_sgr(
-                &self.border_top_fg_color,
-                &self.border_top_bg_color,
-                &fg_combined_ref.cloned(),
-                &bg_combined_ref.cloned(),
-            );
-            let right_sgr = edge_sgr(
-                &self.border_right_fg_color,
-                &self.border_right_bg_color,
-                &fg_combined_ref.cloned(),
-                &bg_combined_ref.cloned(),
-            );
-            let bottom_sgr = edge_sgr(
-                &self.border_bottom_fg_color,
-                &self.border_bottom_bg_color,
-                &fg_combined_ref.cloned(),
-                &bg_combined_ref.cloned(),
-            );
-            let left_sgr = edge_sgr(
-                &self.border_left_fg_color,
-                &self.border_left_bg_color,
-                &fg_combined_ref.cloned(),
-                &bg_combined_ref.cloned(),
-            );
-            let reset = "\x1b[0m";
-
-            // Build top border (conditionally)
-            let top = if self.get_border_top() {
-                if top_sgr.is_empty() {
-                    format!(
-                        "{}{}{}",
-                        if self.get_border_left() {
-                            b.top_left
-                        } else {
-                            b.top
-                        },
-                        safe_str_repeat(b.top, w),
-                        if self.get_border_right() {
-                            b.top_right
-                        } else {
-                            b.top
-                        }
-                    )
-                } else {
-                    format!(
-                        "{}{}{}{}{}",
-                        top_sgr,
-                        if self.get_border_left() {
-                            b.top_left
-                        } else {
-                            b.top
-                        },
-                        safe_str_repeat(b.top, w),
-                        if self.get_border_right() {
-                            b.top_right
-                        } else {
-                            b.top
-                        },
-                        reset
-                    )
-                }
-            } else {
-                String::new()
-            };
-
-            // Add left/right borders per line, padding each line to the max width
-            let mid = {
-                let mut out_lines: Vec<String> = Vec::with_capacity(final_lines.len());
-                let left_part_base = if self.get_border_left() {
-                    if left_sgr.is_empty() {
-                        b.left.to_string()
-                    } else {
-                        format!("{}{}{}", left_sgr, b.left, reset)
-                    }
-                } else {
-                    String::new()
-                };
-                let right_part_base = if self.get_border_right() {
-                    if right_sgr.is_empty() {
-                        b.right.to_string()
-                    } else {
-                        format!("{}{}{}", right_sgr, b.right, reset)
-                    }
-                } else {
-                    String::new()
-                };
-                for l in &final_lines {
-                    let lw = width_visible(l);
-                    let pad = w.saturating_sub(lw);
-                    let mut line_buf = String::with_capacity(w + 4);
-                    line_buf.push_str(&left_part_base);
-                    line_buf.push_str(l);
-                    if pad > 0 {
-                        line_buf.push_str(&safe_repeat(' ', pad));
-                    }
-                    line_buf.push_str(&right_part_base);
-                    out_lines.push(line_buf);
-                }
-                out_lines.join("\n")
-            };
-
-            // Build bottom border (conditionally)
-            let bot = if self.get_border_bottom() {
-                if bottom_sgr.is_empty() {
-                    format!(
-                        "{}{}{}",
-                        if self.get_border_left() {
-                            b.bottom_left
-                        } else {
-                            b.bottom
-                        },
-                        safe_str_repeat(b.bottom, w),
-                        if self.get_border_right() {
-                            b.bottom_right
-                        } else {
-                            b.bottom
-                        }
-                    )
-                } else {
-                    format!(
-                        "{}{}{}{}{}",
-                        bottom_sgr,
-                        if self.get_border_left() {
-                            b.bottom_left
-                        } else {
-                            b.bottom
-                        },
-                        safe_str_repeat(b.bottom, w),
-                        if self.get_border_right() {
-                            b.bottom_right
-                        } else {
-                            b.bottom
-                        },
-                        reset
-                    )
-                }
-            } else {
-                String::new()
-            };
-
-            // Combine the parts and update final_lines with bordered content
-            let bordered_content = if !top.is_empty() && !bot.is_empty() {
-                format!("{}\n{}\n{}", top, mid, bot)
-            } else if !top.is_empty() {
-                format!("{}\n{}", top, mid)
-            } else if !bot.is_empty() {
-                format!("{}\n{}", mid, bot)
-            } else {
-                mid
-            };
-
-            // Replace final_lines with the bordered content
-            final_lines = bordered_content
-                .split('\n')
-                .map(|s| s.to_string())
-                .collect();
+        if !render_borders {
+            return final_lines;
         }
 
-        // STYLING SECOND: Apply styling to entire canvas
-        if !sgr.is_empty() {
-            let prefix = format!("\x1b[{}m", sgr.join(";"));
-            let suffix = "\x1b[0m";
+        let b = self.get_border_style();
+        // Compute target width from the maximum visible width across all lines
+        let mut w: usize = 0;
+        for l in &final_lines {
+            w = w.max(width_visible(l));
+        }
+        // Determine effective renderer/profile
+        let eff = self.r.clone().unwrap_or_else(|| default_renderer().clone());
+        let profile = eff.color_profile();
 
-            let style_whole_line = self.get_background().is_some()
-                || self.get_color_whitespace()
-                || (self.get_underline() && self.get_underline_spaces())
-                || (self.get_strikethrough() && self.get_strikethrough_spaces());
+        let [top_sgr, right_sgr, bottom_sgr, left_sgr] = self.border_side_sgrs(profile);
 
-            if style_whole_line {
-                // For background colors or styled spaces, style the entire canvas
-                final_lines = final_lines
-                    .into_iter()
-                    .map(|line| format!("{}{}{}", prefix, line, suffix))
-                    .collect();
-            } else {
-                // For foreground-only styling, style only non-whitespace parts
-                final_lines = final_lines
-                    .into_iter()
-                    .map(|line| {
-                        let leading_spaces = line.chars().take_while(|&c| c == ' ').count();
-                        let trailing_spaces = line.chars().rev().take_while(|&c| c == ' ').count();
-                        let content_start = leading_spaces;
-                        let content_end = line.len().saturating_sub(trailing_spaces);
+        // Build top border (conditionally)
+        let top = self.horizontal_border_edge(
+            self.get_border_top(),
+            &top_sgr,
+            b.top_left,
+            b.top,
+            b.top_right,
+            w,
+        );
 
-                        if content_start >= content_end {
-                            line
-                        } else {
-                            let lead = &line[..content_start];
-                            let mid = &line[content_start..content_end];
-                            let trail = &line[content_end..];
-                            format!("{}{}{}{}{}", lead, prefix, mid, suffix, trail)
-                        }
-                    })
-                    .collect();
-            }
+        // Add left/right borders per line, padding each line to the max width
+        let mid = self.build_border_mid(&final_lines, &left_sgr, &right_sgr, b.left, b.right, w);
+
+        // Build bottom border (conditionally)
+        let bot = self.horizontal_border_edge(
+            self.get_border_bottom(),
+            &bottom_sgr,
+            b.bottom_left,
+            b.bottom,
+            b.bottom_right,
+            w,
+        );
+
+        // Combine the parts and update final_lines with bordered content
+        let bordered_content = if !top.is_empty() && !bot.is_empty() {
+            format!("{}\n{}\n{}", top, mid, bot)
+        } else if !top.is_empty() {
+            format!("{}\n{}", top, mid)
+        } else if !bot.is_empty() {
+            format!("{}\n{}", mid, bot)
+        } else {
+            mid
+        };
+
+        // Replace final_lines with the bordered content
+        bordered_content
+            .split('\n')
+            .map(|s| s.to_string())
+            .collect()
+    }
+
+    /// Applies the computed SGR codes to a laid-out canvas.
+    ///
+    /// When a background color or styled whitespace is active the whole line is
+    /// wrapped; otherwise only the non-whitespace span is colored so that
+    /// alignment padding stays uncolored.
+    fn apply_text_sgr_styling(&self, final_lines: Vec<String>, sgr: &[String]) -> Vec<String> {
+        if sgr.is_empty() {
+            return final_lines;
         }
 
-        let mut result = final_lines.join("\n");
+        let prefix = format!("\x1b[{}m", sgr.join(";"));
+        let suffix = "\x1b[0m";
 
-        // Apply all margins as final step (matches Go implementation)
-        result = self.apply_margins(&result);
+        let style_whole_line = self.get_background().is_some()
+            || self.get_color_whitespace()
+            || (self.get_underline() && self.get_underline_spaces())
+            || (self.get_strikethrough() && self.get_strikethrough_spaces());
 
-        result
+        if style_whole_line {
+            // For background colors or styled spaces, style the entire canvas
+            final_lines
+                .into_iter()
+                .map(|line| format!("{}{}{}", prefix, line, suffix))
+                .collect()
+        } else {
+            // For foreground-only styling, style only non-whitespace parts
+            final_lines
+                .into_iter()
+                .map(|line| {
+                    let leading_spaces = line.chars().take_while(|&c| c == ' ').count();
+                    let trailing_spaces = line.chars().rev().take_while(|&c| c == ' ').count();
+                    let content_start = leading_spaces;
+                    let content_end = line.len().saturating_sub(trailing_spaces);
+
+                    if content_start >= content_end {
+                        line
+                    } else {
+                        let lead = &line[..content_start];
+                        let mid = &line[content_start..content_end];
+                        let trail = &line[content_end..];
+                        format!("{}{}{}{}{}", lead, prefix, mid, suffix, trail)
+                    }
+                })
+                .collect()
+        }
     }
 
     /// Apply margins to a fully-rendered block, using margin background color if set.
