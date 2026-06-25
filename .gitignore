@@ -1,5 +1,7 @@
 /target/
 .bench/
+# Upstream Charm Go repos cloned for reference only (see docs/V2-PARITY-MATRIX.md)
+/reference/
 **/*.rs.bk
 *.pdb
 .DS_Store

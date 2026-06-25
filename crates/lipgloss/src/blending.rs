@@ -344,6 +344,29 @@ pub fn blend_2d(width: usize, height: usize, angle: f64, stops: Vec<Color>) -> V
     result
 }
 
+/// Go API alias for [`blend_1d`].
+#[allow(non_snake_case)]
+pub fn Blend1D(steps: usize, stops: Vec<Color>) -> Vec<Color> {
+    blend_1d(steps, stops)
+}
+
+/// Go API alias for [`blend_2d`].
+#[allow(non_snake_case)]
+pub fn Blend2D(width: usize, height: usize, angle: f64, stops: Vec<Color>) -> Vec<Color> {
+    blend_2d(width, height, angle, stops)
+}
+
+/// Blends colors for border segments (1D gradient along a border edge).
+pub fn blend_border(steps: usize, stops: Vec<Color>) -> Vec<Color> {
+    blend_1d(steps, stops)
+}
+
+/// Go API alias for [`blend_border`].
+#[allow(non_snake_case)]
+pub fn BlendBorder(steps: usize, stops: Vec<Color>) -> Vec<Color> {
+    blend_border(steps, stops)
+}
+
 /// Ensures that a color is not completely transparent.
 ///
 /// If the alpha value is 0, sets it to 1. This is useful for gradient purposes

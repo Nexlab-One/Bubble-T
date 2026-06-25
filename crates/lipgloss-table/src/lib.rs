@@ -409,7 +409,7 @@ pub fn column_style_func(column_styles: Vec<(usize, Style)>) -> impl Fn(i32, usi
 /// ```
 pub type BoxedStyleFunc = Box<dyn Fn(i32, usize) -> Style + Send + Sync>;
 
-/// A flexible table renderer with advanced styling and layout capabilities.
+/// A flexible table OutputContext with advanced styling and layout capabilities.
 ///
 /// `Table` provides a comprehensive solution for rendering tabular data in terminal
 /// applications. It supports a wide range of customization options including borders,

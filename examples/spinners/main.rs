@@ -9,7 +9,7 @@
 //! - Clean interface matching the original Go version
 //! - Multiple spinner styles with number key selection
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit, tick};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
@@ -191,9 +191,9 @@ impl Model for SpinnerModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if let Some(error) = &self.error {
-            return format!("Error: {}", error);
+            return View::new(format!("Error: {}", error));
         }
 
         let mut s = String::new();
@@ -224,7 +224,9 @@ impl Model for SpinnerModel {
             s.push('\n');
         }
 
-        s
+        let mut view = View::new(s);
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -234,7 +236,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create and run the program
     let program = Program::<SpinnerModel>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

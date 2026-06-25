@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "main"
+name = "progress-animated"
 path = "main.rs"
 
 [dependencies]

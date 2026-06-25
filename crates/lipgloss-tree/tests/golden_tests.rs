@@ -1,7 +1,10 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{LazyLock, Mutex};
 
-use lipgloss::renderer::{ColorProfileKind, set_color_profile};
+use lipgloss::output::{ColorProfileKind, set_color_profile};
+
+static GOLDEN_PROFILE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 use lipgloss_tree as tree;
 use lipgloss_tree::{Children, Filter, Tree, new_string_data, root};
 
@@ -24,8 +27,25 @@ fn read_golden(rel: &str) -> String {
     fs::read_to_string(&p).unwrap_or_else(|e| panic!("failed to read {:?}: {}", p, e))
 }
 
-fn assert_matches_golden(output: &str, rel: &str) {
+fn assert_matches_golden<F>(render: F, rel: &str)
+where
+    F: FnOnce() -> String,
+{
+    assert_matches_golden_with_profile(ColorProfileKind::TrueColor, render, rel);
+}
+
+fn assert_matches_golden_with_profile<F>(profile: ColorProfileKind, render: F, rel: &str)
+where
+    F: FnOnce() -> String,
+{
+    let _lock = GOLDEN_PROFILE_LOCK
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    set_color_profile(profile);
+    let output = render();
     let want = read_golden(rel);
+    let output = output.replace("\r\n", "\n");
+    let want = want.replace("\r\n", "\n");
     assert_eq!(output, want, "mismatch for golden {:?}", rel);
 }
 
@@ -42,11 +62,11 @@ fn test_tree_before_after() {
     ]);
 
     // before
-    assert_matches_golden(&format!("{}", tr), "TestTree/before.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTree/before.golden");
 
     // after (rounded)
     let tr2 = tr.clone().enumerator(tree::rounded_enumerator);
-    assert_matches_golden(&format!("{}", tr2), "TestTree/after.golden");
+    assert_matches_golden(|| format!("{}", tr2), "TestTree/after.golden");
 }
 
 #[test]
@@ -60,7 +80,7 @@ fn test_tree_hidden() {
         ]),
         "Baz"
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTreeHidden.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeHidden.golden");
 }
 
 #[test]
@@ -76,7 +96,7 @@ fn test_tree_all_hidden() {
             "Baz"
         ])
         .hide(true);
-    assert_matches_golden(&format!("{}", tr), "TestTreeAllHidden.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeAllHidden.golden");
 }
 
 #[test]
@@ -86,7 +106,7 @@ fn test_tree_root() {
         root("Bar").child(child!["Qux", "Quuux"]),
         "Baz"
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTreeRoot.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeRoot.golden");
 }
 
 #[test]
@@ -95,7 +115,7 @@ fn test_tree_starts_with_subtree() {
         Tree::new().root("Bar").child(child!["Qux", "Quuux"]),
         "Baz"
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTreeStartsWithSubtree.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeStartsWithSubtree.golden");
 }
 
 #[test]
@@ -108,7 +128,7 @@ fn test_tree_add_two_subtrees_without_name() {
         "Baz"
     ]);
     assert_matches_golden(
-        &format!("{}", tr),
+        || format!("{}", tr),
         "TestTreeAddTwoSubTreesWithoutName.golden",
     );
 }
@@ -123,7 +143,7 @@ fn test_tree_last_node_is_subtree() {
             "Quuux",
         ]),
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTreeLastNodeIsSubTree.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeLastNodeIsSubTree.golden");
 }
 
 #[test]
@@ -134,40 +154,38 @@ fn test_tree_nil() {
         root("Bar").child(child!["Qux", root("Quux").child(child!["Bar"]), "Quuux",]),
         "Baz",
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTreeNil.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeNil.golden");
 }
 
 #[test]
 fn test_tree_custom_enumerators_and_styles() {
-    // Use ANSI profile to match Go golden output
-    set_color_profile(ColorProfileKind::ANSI);
+    assert_matches_golden_with_profile(
+        ColorProfileKind::ANSI,
+        || {
+            let enum_style = lipgloss::Style::new()
+                .foreground(lipgloss::Color::from("94"))
+                .padding_right(1);
+            let item_style = lipgloss::Style::new().foreground(lipgloss::Color::from("91"));
 
-    // Mimic TestTreeCustom: customize enumerator/indenter and styles (blue arrows, red items)
-    // Use bright blue (94) and bright red (91) to match golden output
-    let enum_style = lipgloss::Style::new()
-        .foreground(lipgloss::Color::from("94"))
-        .padding_right(1);
-    let item_style = lipgloss::Style::new().foreground(lipgloss::Color::from("91"));
+            let tr = Tree::new()
+                .child(child![
+                    "Foo",
+                    Tree::new().root("Bar").child(child![
+                        "Qux",
+                        Tree::new().root("Quux").child(child!["Foo", "Bar",]),
+                        "Quuux",
+                    ]),
+                    "Baz",
+                ])
+                .item_style(item_style)
+                .enumerator_style(enum_style)
+                .enumerator(|_, _| "->".to_string())
+                .indenter(|_, _| "->".to_string());
 
-    let tr = Tree::new()
-        .child(child![
-            "Foo",
-            Tree::new().root("Bar").child(child![
-                "Qux",
-                Tree::new().root("Quux").child(child!["Foo", "Bar",]),
-                "Quuux",
-            ]),
-            "Baz",
-        ])
-        .item_style(item_style)
-        .enumerator_style(enum_style)
-        .enumerator(|_, _| "->".to_string())
-        .indenter(|_, _| "->".to_string());
-
-    assert_matches_golden(&format!("{}", tr), "TestTreeCustom.golden");
-
-    // Reset to default state to avoid affecting other tests
-    set_color_profile(ColorProfileKind::TrueColor);
+            format!("{}", tr)
+        },
+        "TestTreeCustom.golden",
+    );
 }
 
 #[test]
@@ -181,7 +199,7 @@ fn test_tree_multiline_node() {
         ]),
         "Baz\nLine 2",
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTreeMultilineNode.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeMultilineNode.golden");
 }
 
 #[test]
@@ -197,7 +215,7 @@ fn test_tree_subtree_with_custom_enumerator() {
         "Baz",
     ]);
     assert_matches_golden(
-        &format!("{}", tr),
+        || format!("{}", tr),
         "TestTreeSubTreeWithCustomEnumerator.golden",
     );
 }
@@ -216,7 +234,7 @@ fn test_tree_mixed_enumerator_size() {
             6 => "VI".into(),
             _ => unreachable!(),
         });
-    assert_matches_golden(&format!("{}", tr), "TestTreeMixedEnumeratorSize.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeMixedEnumeratorSize.golden");
 }
 
 #[test]
@@ -227,7 +245,7 @@ fn test_tree_style_nil_funcs() {
         // Use no-op closures to simulate nil funcs
         .item_style_func(|_, _| lipgloss::Style::new())
         .enumerator_style_func(|_, _| lipgloss::Style::new());
-    assert_matches_golden(&format!("{}", tr), "TestTreeStyleNilFuncs.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeStyleNilFuncs.golden");
 }
 
 #[test]
@@ -242,7 +260,7 @@ fn test_tree_style_at() {
                 "-".into()
             }
         });
-    assert_matches_golden(&format!("{}", tr), "TestTreeStyleAt.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeStyleAt.golden");
 }
 
 #[test]
@@ -264,19 +282,23 @@ fn test_filter_and_node_data_len() {
         }
     }
     let tr = Tree::new().root("Root").child(children);
-    assert_matches_golden(&format!("{}", tr), "TestFilter.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestFilter.golden");
 }
 
 // The following tests require other crates (lipgloss-list, lipgloss-table). Mirror now, enable when crates are ready.
 #[test]
 fn test_root_style() {
-    set_color_profile(ColorProfileKind::TrueColor);
-    let tr = Tree::new()
-        .root("Root")
-        .child(child!["Foo", "Baz",])
-        .root_style(lipgloss::Style::new().background(lipgloss::Color::from("#5A56E0")))
-        .item_style(lipgloss::Style::new().background(lipgloss::Color::from("#04B575")));
-    assert_matches_golden(&format!("{}", tr), "TestRootStyle.golden");
+    assert_matches_golden(
+        || {
+            let tr = Tree::new()
+                .root("Root")
+                .child(child!["Foo", "Baz",])
+                .root_style(lipgloss::Style::new().background(lipgloss::Color::from("#5A56E0")))
+                .item_style(lipgloss::Style::new().background(lipgloss::Color::from("#04B575")));
+            format!("{}", tr)
+        },
+        "TestRootStyle.golden",
+    );
 }
 
 #[test]
@@ -291,7 +313,7 @@ fn test_embed_list_within_tree() {
     let t1 = Tree::new()
         .child(child![format!("{}", list1)])
         .child(child![format!("{}", list2)]);
-    assert_matches_golden(&format!("{}", t1), "TestEmbedListWithinTree.golden");
+    assert_matches_golden(|| format!("{}", t1), "TestEmbedListWithinTree.golden");
 }
 
 #[test]
@@ -313,7 +335,7 @@ fn test_multiline_prefix() {
             "Bar Document\nThe Bar Files",
             "Baz Document\nThe Baz Files",
         ]);
-    assert_matches_golden(&format!("{}", tr), "TestMultilinePrefix.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestMultilinePrefix.golden");
 }
 
 #[test]
@@ -341,7 +363,7 @@ fn test_multiline_prefix_subtree() {
             ]),
         "Qux",
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestMultilinePrefixSubtree.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestMultilinePrefixSubtree.golden");
 }
 
 #[test]
@@ -376,7 +398,7 @@ fn test_multiline_prefix_inception() {
                 ]),
             "Baz Document\nThe Baz Files",
         ]);
-    assert_matches_golden(&format!("{}", tr), "TestMultilinePrefixInception.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestMultilinePrefixInception.golden");
 }
 
 #[test]
@@ -388,7 +410,7 @@ fn test_types() {
         "Bar", "Qux", // []string{"Qux", "Quux", "Quuux"} expanded
         "Quux", "Quuux",
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTypes.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTypes.golden");
 }
 
 #[test]
@@ -401,7 +423,7 @@ fn test_add_item_with_and_without_root() {
         "Qux",
     ]);
     assert_matches_golden(
-        &format!("{}", t1),
+        || format!("{}", t1),
         "TestAddItemWithAndWithoutRoot/with_root.golden",
     );
 
@@ -412,7 +434,7 @@ fn test_add_item_with_and_without_root() {
         "Qux",
     ]);
     assert_matches_golden(
-        &format!("{}", t2),
+        || format!("{}", t2),
         "TestAddItemWithAndWithoutRoot/without_root.golden",
     );
 }
@@ -433,5 +455,5 @@ fn test_tree_table() {
         root("Bar").child(child!["Baz", "Baz", tbl, "Baz"]),
         "Qux"
     ]);
-    assert_matches_golden(&format!("{}", tr), "TestTreeTable.golden");
+    assert_matches_golden(|| format!("{}", tr), "TestTreeTable.golden");
 }

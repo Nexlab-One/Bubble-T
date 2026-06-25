@@ -19,7 +19,7 @@
 //! # bubble-t Integration
 //!
 //! ```rust
-//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd};
+//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd, View};
 //! use bubble_t_widgets::timer::{new, Model, TickMsg, StartStopMsg, TimeoutMsg};
 //! use std::time::Duration;
 //!
@@ -46,8 +46,8 @@
 //!         self.timer.update(msg)
 //!     }
 //!
-//!     fn view(&self) -> String {
-//!         format!("Time remaining: {}", self.timer.view())
+//!     fn view(&self) -> View {
+//!         View::new(format!("Time remaining: {}", self.timer.view()))
 //!     }
 //! }
 //! ```
@@ -66,7 +66,7 @@
 //! let toggle_cmd = timer.toggle(); // Toggle running state
 //! ```
 
-use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, tick as bubbletea_tick};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, tick as bubbletea_tick};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::time::{Duration, Instant};
 
@@ -269,7 +269,7 @@ pub struct TickMsg {
 ///
 /// ```rust
 /// use bubble_t_widgets::timer::{TimeoutMsg, new};
-/// use bubble_t::{Model as BubbleTeaModel, Msg};
+/// use bubble_t::{Model as BubbleTeaModel, Msg, View};
 /// use std::time::Duration;
 ///
 /// struct App {
@@ -290,8 +290,8 @@ pub struct TickMsg {
 ///     }
 ///
 ///     // ... other methods
-/// #   fn init() -> (Self, Option<bubble_t::Cmd>) { unimplemented!() }
-/// #   fn view(&self) -> String { unimplemented!() }
+/// #   fn init() -> (Self, Option<bubble_t::Cmd>) { todo!() }
+/// #   fn view(&self) -> View { View::new("") }
 /// }
 /// ```
 ///
@@ -346,7 +346,7 @@ pub struct TimeoutMsg {
 /// Integration with Bubble Tea:
 /// ```rust
 /// use bubble_t_widgets::timer::{new, Model as TimerModel, TimeoutMsg};
-/// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg};
+/// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, View};
 /// use std::time::Duration;
 ///
 /// struct App {
@@ -377,8 +377,8 @@ pub struct TimeoutMsg {
 ///         self.timer.update(msg)
 ///     }
 ///
-///     fn view(&self) -> String {
-///         format!("{} - Remaining: {}", self.status, self.timer.view())
+///     fn view(&self) -> View {
+///         View::new(format!("{} - Remaining: {}", self.status, self.timer.view()))
 ///     }
 /// }
 /// ```
@@ -577,7 +577,7 @@ pub fn new_with_interval(timeout: Duration, interval: Duration) -> Model {
 /// Integration with Bubble Tea:
 /// ```rust
 /// use bubble_t_widgets::timer::new;
-/// use bubble_t::{Model as BubbleTeaModel, Cmd};
+/// use bubble_t::{Model as BubbleTeaModel, Cmd, View};
 /// use std::time::Duration;
 ///
 /// struct App {
@@ -593,7 +593,7 @@ pub fn new_with_interval(timeout: Duration, interval: Duration) -> Model {
 ///     
 ///     // ... other methods
 /// #   fn update(&mut self, _: bubble_t::Msg) -> Option<Cmd> { None }
-/// #   fn view(&self) -> String { self.timer.view() }
+/// #   fn view(&self) -> View { View::new(self.timer.view()) }
 /// }
 /// ```
 ///
@@ -655,7 +655,7 @@ impl Model {
     /// Using ID to identify timer messages:
     /// ```rust
     /// use bubble_t_widgets::timer::{new, TimeoutMsg};
-    /// use bubble_t::{Model as BubbleTeaModel, Msg};
+    /// use bubble_t::{Model as BubbleTeaModel, Msg, View};
     /// use std::time::Duration;
     ///
     /// struct App {
@@ -676,8 +676,8 @@ impl Model {
     ///     }
     ///     
     ///     // ... other methods
-    /// #   fn init() -> (Self, Option<bubble_t::Cmd>) { unimplemented!() }
-    /// #   fn view(&self) -> String { unimplemented!() }
+    /// #   fn init() -> (Self, Option<bubble_t::Cmd>) { todo!() }
+    /// #   fn view(&self) -> View { View::new("") }
     /// }
     /// ```
     ///
@@ -869,7 +869,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::timer::new;
-    /// use bubble_t::{Model as BubbleTeaModel, Cmd};
+    /// use bubble_t::{Model as BubbleTeaModel, Cmd, View};
     /// use std::time::Duration;
     ///
     /// struct App {
@@ -894,7 +894,7 @@ impl Model {
     ///     }
     ///     
     ///     // ... other methods
-    /// #   fn view(&self) -> String { self.timer.view() }
+    /// #   fn view(&self) -> View { View::new(self.timer.view()) }
     /// }
     /// ```
     ///
@@ -956,7 +956,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::timer::new;
-    /// use bubble_t::{Model as BubbleTeaModel, Cmd, KeyMsg};
+    /// use bubble_t::{Model as BubbleTeaModel, Cmd, KeyMsg, View};
     /// use crossterm::event::{KeyCode, KeyModifiers};
     /// use std::time::Duration;
     ///
@@ -983,8 +983,8 @@ impl Model {
     ///     }
     ///     
     ///     // ... other methods
-    /// #   fn init() -> (Self, Option<Cmd>) { unimplemented!() }
-    /// #   fn view(&self) -> String { format!("Timer: {} {}", self.timer.view(), if self.paused { "(PAUSED)" } else { "" }) }
+    /// #   fn init() -> (Self, Option<Cmd>) { todo!() }
+    /// #   fn view(&self) -> View { View::new(format!("Timer: {} {}", self.timer.view(), if self.paused { "(PAUSED)" } else { "" })) }
     /// }
     /// ```
     ///
@@ -1058,7 +1058,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::timer::new;
-    /// use bubble_t::{Model as BubbleTeaModel, Cmd, KeyMsg};
+    /// use bubble_t::{Model as BubbleTeaModel, Cmd, KeyMsg, View};
     /// use crossterm::event::{KeyCode, KeyModifiers};
     /// use std::time::Duration;
     ///
@@ -1084,12 +1084,12 @@ impl Model {
     ///         self.work_timer.update(msg)
     ///     }
     ///
-    ///     fn view(&self) -> String {
-    ///         format!(
+    ///     fn view(&self) -> View {
+    ///         View::new(format!(
     ///             "Work Timer: {}\n\n[SPACE] to {}",
     ///             self.work_timer.view(),
     ///             if self.work_timer.running() { "pause" } else { "resume" }
-    ///         )
+    ///         ))
     ///     }
     /// }
     /// ```
@@ -1206,7 +1206,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::timer::new;
-    /// use bubble_t::{Model as BubbleTeaModel, Cmd};
+    /// use bubble_t::{Model as BubbleTeaModel, Cmd, View};
     /// use std::time::Duration;
     ///
     /// struct App {
@@ -1223,14 +1223,14 @@ impl Model {
     ///     
     ///     // ... other methods
     /// #   fn update(&mut self, _: bubble_t::Msg) -> Option<Cmd> { None }
-    /// #   fn view(&self) -> String { self.timer.view() }
+    /// #   fn view(&self) -> View { View::new(self.timer.view()) }
     /// }
     /// ```
     ///
     /// Multiple timer initialization:
     /// ```rust
     /// use bubble_t_widgets::timer::new;
-    /// use bubble_t::{Model as BubbleTeaModel, Cmd};
+    /// use bubble_t::{Model as BubbleTeaModel, Cmd, View};
     /// use std::time::Duration;
     ///
     /// struct MultiTimerApp {
@@ -1251,7 +1251,7 @@ impl Model {
     ///     
     ///     // ... other methods
     /// #   fn update(&mut self, _: bubble_t::Msg) -> Option<Cmd> { None }
-    /// #   fn view(&self) -> String { self.work_timer.view() }
+    /// #   fn view(&self) -> View { View::new(self.work_timer.view()) }
     /// }
     /// ```
     ///
@@ -1312,7 +1312,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::timer::{new, TickMsg, StartStopMsg, TimeoutMsg};
-    /// use bubble_t::{Model as BubbleTeaModel, Msg, Cmd};
+    /// use bubble_t::{Model as BubbleTeaModel, Msg, Cmd, View};
     /// use std::time::Duration;
     ///
     /// struct App {
@@ -1334,8 +1334,8 @@ impl Model {
     ///     }
     ///     
     ///     // ... other methods
-    /// #   fn init() -> (Self, Option<Cmd>) { unimplemented!() }
-    /// #   fn view(&self) -> String { format!("{}: {}", self.status, self.timer.view()) }
+    /// #   fn init() -> (Self, Option<Cmd>) { todo!() }
+    /// #   fn view(&self) -> View { View::new(format!("{}: {}", self.status, self.timer.view())) }
     /// }
     /// ```
     ///
@@ -1510,7 +1510,7 @@ impl Model {
     /// Integration in UI:
     /// ```rust
     /// use bubble_t_widgets::timer::new;
-    /// use bubble_t::{Model as BubbleTeaModel};
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     /// use std::time::Duration;
     ///
     /// struct App {
@@ -1519,16 +1519,16 @@ impl Model {
     /// }
     ///
     /// impl BubbleTeaModel for App {
-    ///     fn view(&self) -> String {
-    ///         format!(
+    ///     fn view(&self) -> View {
+    ///         View::new(format!(
     ///             "Cooking: {}\n\nTime remaining: {}\n\n[SPACE] to pause",
     ///             self.recipe,
     ///             self.cooking_timer.view()
-    ///         )
+    ///         ))
     ///     }
     ///     
     ///     // ... other methods
-    /// #   fn init() -> (Self, Option<bubble_t::Cmd>) { unimplemented!() }
+    /// #   fn init() -> (Self, Option<bubble_t::Cmd>) { todo!() }
     /// #   fn update(&mut self, _: bubble_t::Msg) -> Option<bubble_t::Cmd> { None }
     /// }
     /// ```
@@ -1673,14 +1673,14 @@ impl BubbleTeaModel for Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::timer::Model as TimerModel;
-    /// use bubble_t::Model as BubbleTeaModel;
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     ///
     /// let timer = TimerModel::default();
     /// let display = timer.view();
     /// assert!(display.contains("1m") || display.contains("60s"));
     /// ```
-    fn view(&self) -> String {
-        self.view()
+    fn view(&self) -> View {
+        View::new(self.view())
     }
 }
 

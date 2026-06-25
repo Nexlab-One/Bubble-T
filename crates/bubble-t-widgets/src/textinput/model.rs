@@ -5,7 +5,7 @@ use super::keymap::{KeyMap, default_key_map};
 use super::types::PasteMsg;
 use super::types::{EchoMode, PasteErrMsg, ValidateFunc};
 use crate::cursor::{Model as Cursor, new as cursor_new};
-use bubble_t::{Cmd, Model as BubbleTeaModel, Msg};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View};
 use lipgloss_extras::prelude::*;
 use std::time::Duration;
 
@@ -216,7 +216,7 @@ impl Default for Model {
 ///
 /// ```rust
 /// use bubble_t_widgets::textinput::blink;
-/// use bubble_t::{Model, Cmd};
+/// use bubble_t::{Model, Cmd, View};
 ///
 /// struct App {
 ///     // ... other fields
@@ -229,7 +229,7 @@ impl Default for Model {
 ///     }
 /// #
 /// #   fn update(&mut self, _msg: bubble_t::Msg) -> Option<Cmd> { None }
-/// #   fn view(&self) -> String { String::new() }
+/// #   fn view(&self) -> View { View::new("") }
 /// }
 /// ```
 pub fn blink() -> Cmd {
@@ -295,7 +295,7 @@ impl BubbleTeaModel for Model {
         self.update(msg)
     }
 
-    fn view(&self) -> String {
-        self.view()
+    fn view(&self) -> View {
+        View::new(self.view())
     }
 }

@@ -3,12 +3,14 @@
 // This is a minimal implementation that matches the simplicity of the Go version.
 // The rich help text is provided automatically by bubble-t-widgets.
 
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, window_size};
+use bubble_t::{
+    Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, View, WindowSizeMsg, window_size,
+};
 use bubble_t_widgets::list::{DefaultDelegate, DefaultItem, Model as List};
 use bubble_t_widgets::paginator::Type as PaginatorType;
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::Style;
-use lipgloss_extras::lipgloss::renderer::{self, ColorProfileKind};
+use lipgloss_extras::lipgloss::output::{self, ColorProfileKind};
 
 // Synthetic message used to trigger the initial render immediately after startup.
 struct InitRenderMsg;
@@ -110,11 +112,11 @@ impl BubbleTeaModel for Model {
         self.list.update(msg)
     }
 
-    fn view(&self) -> String {
-        // Render list view with document style (matching Go version)
-        let view = self.list.view();
-
-        doc_style().render(&view)
+    fn view(&self) -> View {
+        let content = doc_style().render(&self.list.view().content);
+        let mut view = View::new(content);
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -122,10 +124,10 @@ impl BubbleTeaModel for Model {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Force TrueColor mode FIRST to ensure proper color rendering
     // Must be set before any lipgloss styling operations
-    renderer::set_color_profile(ColorProfileKind::TrueColor);
+    output::set_color_profile(ColorProfileKind::TrueColor);
 
     // Create program with alt screen (matching Go version)
-    let program = Program::<Model>::builder().alt_screen(true).build()?;
+    let program = Program::<Model>::builder().build()?;
 
     // Run the program
     let _result = program.run().await?;

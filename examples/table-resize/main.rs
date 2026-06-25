@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style, thick_border};
 use lipgloss_extras::table::{HEADER_ROW, Table};
@@ -328,7 +328,7 @@ impl Model for AppModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let base_style = Style::new().padding(0, 1, 0, 1);
         let header_style = base_style.clone().foreground(Color::from("252")).bold(true);
         let selected_style = base_style
@@ -421,7 +421,9 @@ impl Model for AppModel {
             "All rows visible | q: quit".to_string()
         };
 
-        format!("{}\n{}", table_output, help_text)
+        let mut view = View::new(format!("{}\n{}", table_output, help_text));
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -429,7 +431,7 @@ impl Model for AppModel {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create and run the program
     let program = Program::<AppModel>::builder()
-        .alt_screen(true) // Use alternate screen for cleaner display
+        // Use alternate screen for cleaner display
         .signal_handler(true) // Enable Ctrl+C handling
         .build()?;
 

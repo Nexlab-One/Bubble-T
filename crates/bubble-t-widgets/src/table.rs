@@ -65,7 +65,7 @@
 //!
 //! ```rust
 //! use bubble_t_widgets::table::{Model as TableModel, Column, Row};
-//! use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, KeyMsg};
+//! use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, KeyMsg, View};
 //!
 //! struct App {
 //!     table: TableModel,
@@ -86,8 +86,8 @@
 //!         self.table.update(msg)
 //!     }
 //!
-//!     fn view(&self) -> String {
-//!         format!("My Data Table:\n\n{}", self.table.view())
+//!     fn view(&self) -> View {
+//!         View::new(format!("My Data Table:\n\n{}", self.table.view()))
 //!     }
 //! }
 //! ```
@@ -128,7 +128,7 @@ use crate::{
     key::{self, KeyMap as KeyMapTrait},
     viewport,
 };
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, legacy_key_msg};
 use crossterm::event::KeyCode;
 use lipgloss_extras::prelude::*;
 use lipgloss_extras::table::Table as LGTable;
@@ -1196,6 +1196,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::table::{Model, Column};
+    /// use bubble_t::View;
     ///
     /// struct App {
     ///     table: Model,
@@ -1203,13 +1204,13 @@ impl Model {
     /// }
     ///
     /// impl App {
-    ///     fn view(&self) -> String {
+    ///     fn view(&self) -> View {
     ///         let mut output = self.table.view();
     ///         if self.show_help {
     ///             output.push_str("\n\n");
     ///             output.push_str(&self.table.help_view());
     ///         }
-    ///         output
+    ///         View::new(output)
     ///     }
     /// }
     /// ```
@@ -1341,7 +1342,7 @@ impl BubbleTeaModel for Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::table::Model;
-    /// use bubble_t::Model as BubbleTeaModel;
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     ///
     /// // This is typically called by the Bubble Tea framework
     /// let (mut table, cmd) = Model::init();
@@ -1413,32 +1414,32 @@ impl BubbleTeaModel for Model {
     /// is automatically rebuilt to ensure the selected row remains visible
     /// and the display is updated correctly.
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
-        if let Some(k) = msg.downcast_ref::<KeyMsg>() {
+        if let Some(k) = legacy_key_msg(&msg) {
             if !self.focus {
                 return None;
             }
-            if self.keymap.row_up.matches(k) {
+            if self.keymap.row_up.matches(&k) {
                 self.select_prev();
-            } else if self.keymap.row_down.matches(k) {
+            } else if self.keymap.row_down.matches(&k) {
                 self.select_next();
-            } else if self.keymap.go_to_start.matches(k) {
+            } else if self.keymap.go_to_start.matches(&k) {
                 self.selected = 0;
-            } else if self.keymap.go_to_end.matches(k) {
+            } else if self.keymap.go_to_end.matches(&k) {
                 if !self.rows.is_empty() {
                     self.selected = self.rows.len() - 1;
                 }
             }
             // Page and half-page moves adjust selection relative to height
-            else if self.keymap.page_up.matches(k) {
+            else if self.keymap.page_up.matches(&k) {
                 self.selected = self.selected.saturating_sub(self.height as usize);
-            } else if self.keymap.page_down.matches(k) {
+            } else if self.keymap.page_down.matches(&k) {
                 self.selected =
                     (self.selected + self.height as usize).min(self.rows.len().saturating_sub(1));
-            } else if self.keymap.half_page_up.matches(k) {
+            } else if self.keymap.half_page_up.matches(&k) {
                 self.selected = self
                     .selected
                     .saturating_sub((self.height as usize).max(1) / 2);
-            } else if self.keymap.half_page_down.matches(k) {
+            } else if self.keymap.half_page_down.matches(&k) {
                 self.selected = (self.selected + (self.height as usize).max(1) / 2)
                     .min(self.rows.len().saturating_sub(1));
             }
@@ -1463,7 +1464,7 @@ impl BubbleTeaModel for Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::table::{Model, Column, Row};
-    /// use bubble_t::Model as BubbleTeaModel;
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     ///
     /// let mut table = Model::new(vec![Column::new("Name", 15)]);
     /// table.add_row(Row::new(vec!["Alice".into()]));
@@ -1478,7 +1479,7 @@ impl BubbleTeaModel for Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::table::Model as TableModel;
-    /// use bubble_t::Model as BubbleTeaModel;
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     ///
     /// struct App {
     ///     table: TableModel,
@@ -1493,12 +1494,12 @@ impl BubbleTeaModel for Model {
     /// #       None
     /// #   }
     ///     
-    ///     fn view(&self) -> String {
-    ///         format!("My Application\n\n{}", self.table.view())
+    ///     fn view(&self) -> View {
+    ///         View::new(format!("My Application\n\n{}", self.table.view()))
     ///     }
     /// }
     /// ```
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         self.viewport.view()
     }
 }

@@ -518,4 +518,38 @@ impl Style {
         self.set_prop(COLOR_WHITESPACE_KEY);
         self
     }
+
+    /// Sets an OSC 8 hyperlink on rendered text.
+    ///
+    /// Terminals that do not support hyperlinks degrade gracefully to plain text.
+    pub fn hyperlink(mut self, uri: impl Into<String>) -> Self {
+        self.hyperlink = Some(uri.into());
+        self.hyperlink_params.clear();
+        self.set_prop(HYPERLINK_KEY);
+        self
+    }
+
+    /// Sets an OSC 8 hyperlink with extra parameters (e.g. `"id=1"`).
+    pub fn hyperlink_with_params(
+        mut self,
+        uri: impl Into<String>,
+        params: impl Into<String>,
+    ) -> Self {
+        self.hyperlink = Some(uri.into());
+        self.hyperlink_params = params.into();
+        self.set_prop(HYPERLINK_KEY);
+        self
+    }
+
+    /// Sets the underline style variant (single, double, curly, dotted, dashed).
+    pub fn underline_style(mut self, style: ansi::style::Underline) -> Self {
+        self.underline_style = style as u8;
+        self.set_prop(UNDERLINE_STYLE_KEY);
+        match style {
+            ansi::style::Underline::None => self.set_attr(ATTR_UNDERLINE, false),
+            _ => self.set_attr(ATTR_UNDERLINE, true),
+        }
+        self.set_prop(UNDERLINE_KEY);
+        self
+    }
 }

@@ -49,9 +49,18 @@
 //! # }
 //! ```
 
-use crate::{Error, KeyMsg, MouseMsg, WindowSizeMsg};
-use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
+use crate::event::{
+    Mouse, MouseButton, MouseClickMsg, MouseEventMsg, MouseMotionMsg, MouseReleaseMsg,
+    MouseWheelMsg,
+};
+use crate::key::{Key, KeyEventMsg, key_event_from_crossterm};
+use crate::query_parser::parse_responses;
+use crate::{Error, KeyPressMsg, MouseMsg, WindowSizeMsg};
+use crossterm::event::{
+    Event, EventStream, KeyCode, KeyEvent, MouseButton as CMouseButton, MouseEvent, MouseEventKind,
+};
 use futures::StreamExt;
+use std::io::Read;
 use std::pin::Pin;
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 
@@ -226,38 +235,28 @@ impl InputHandler {
     /// Returns an error if crossterm's event stream encounters an I/O error.
     async fn run_terminal_input(event_tx: crate::event::EventSender) -> Result<(), Error> {
         let mut event_stream = EventStream::new();
+        let mut response_buf = Vec::new();
 
-        while let Some(event) = event_stream.next().await {
+        loop {
+            drain_terminal_responses(&event_tx, &mut response_buf)?;
+
+            if !crossterm::event::poll(std::time::Duration::from_millis(16))? {
+                continue;
+            }
+
+            let event = event_stream.next().await;
+            let Some(event) = event else {
+                break;
+            };
+
             match event {
                 Ok(Event::Key(key_event)) => {
-                    let msg = KeyMsg {
-                        key: key_event.code,
-                        modifiers: key_event.modifiers,
-                    };
-
-                    // Skip key_event.is_release() on Windows to prevent double keys
-                    #[cfg(target_os = "windows")]
-                    {
-                        if key_event.is_press() && event_tx.send(Box::new(msg)).is_err() {
-                            break;
-                        }
-                    }
-
-                    #[cfg(not(target_os = "windows"))]
-                    {
-                        if event_tx.send(Box::new(msg)).is_err() {
-                            break;
-                        }
+                    if !send_key_event(&event_tx, key_event) {
+                        break;
                     }
                 }
                 Ok(Event::Mouse(mouse_event)) => {
-                    let msg = MouseMsg {
-                        x: mouse_event.column,
-                        y: mouse_event.row,
-                        button: mouse_event.kind,
-                        modifiers: mouse_event.modifiers,
-                    };
-                    if event_tx.send(Box::new(msg)).is_err() {
+                    if !send_mouse_event(&event_tx, mouse_event) {
                         break;
                     }
                 }
@@ -280,8 +279,17 @@ impl InputHandler {
                     }
                 }
                 Ok(Event::Paste(pasted_text)) => {
+                    if event_tx
+                        .send(Box::new(crate::event::PasteStartMsg))
+                        .is_err()
+                    {
+                        break;
+                    }
                     let msg = crate::event::PasteMsg(pasted_text);
                     if event_tx.send(Box::new(msg)).is_err() {
+                        break;
+                    }
+                    if event_tx.send(Box::new(crate::event::PasteEndMsg)).is_err() {
                         break;
                     }
                 }
@@ -289,73 +297,72 @@ impl InputHandler {
                     return Err(Error::Io(e));
                 }
             }
+
+            drain_terminal_responses(&event_tx, &mut response_buf)?;
         }
 
         Ok(())
     }
 
-    /// Runs the custom input handler from an async reader.
-    ///
-    /// This method reads line-based input from a custom async reader and converts
-    /// each line into individual `KeyMsg` events. Each character in a line becomes
-    /// a separate key event, and the newline is converted to an `Enter` key event.
-    ///
-    /// This is primarily intended for testing and scenarios where you need to
-    /// simulate keyboard input from a file or other source.
-    ///
-    /// # Arguments
-    ///
-    /// * `event_tx` - Channel sender for dispatching processed events
-    /// * `reader` - The async reader to read input from
-    ///
-    /// # Returns
-    ///
-    /// Returns `Ok(())` when EOF is reached or the event channel is closed,
-    /// or an `Error` if there's an I/O error reading from the source.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if there's an I/O error reading from the async reader.
-    ///
-    /// # Examples
-    ///
-    /// The input "hello\n" would generate the following key events:
-    /// - `KeyMsg { key: KeyCode::Char('h'), modifiers: KeyModifiers::NONE }`
-    /// - `KeyMsg { key: KeyCode::Char('e'), modifiers: KeyModifiers::NONE }`
-    /// - `KeyMsg { key: KeyCode::Char('l'), modifiers: KeyModifiers::NONE }`
-    /// - `KeyMsg { key: KeyCode::Char('l'), modifiers: KeyModifiers::NONE }`
-    /// - `KeyMsg { key: KeyCode::Char('o'), modifiers: KeyModifiers::NONE }`
-    /// - `KeyMsg { key: KeyCode::Enter, modifiers: KeyModifiers::NONE }`
+    /// Feeds raw bytes through the query parser (used by custom input sources).
+    pub fn feed_query_bytes(event_tx: &crate::event::EventSender, data: &[u8]) -> bool {
+        let (messages, _) = parse_responses(data);
+        for msg in messages {
+            if event_tx.send(msg).is_err() {
+                return false;
+            }
+        }
+        true
+    }
+
     async fn run_custom_input(
         event_tx: crate::event::EventSender,
         reader: Pin<Box<dyn AsyncRead + Send + Unpin>>,
     ) -> Result<(), Error> {
         let mut buf_reader = BufReader::new(reader);
         let mut line = String::new();
+        let mut response_buf = Vec::new();
 
         loop {
             line.clear();
             match buf_reader.read_line(&mut line).await {
-                Ok(0) => break, // EOF
+                Ok(0) => break,
                 Ok(_) => {
-                    // Process each character in the line as a separate key event
-                    for ch in line.trim().chars() {
-                        let msg = KeyMsg {
-                            key: KeyCode::Char(ch),
-                            modifiers: KeyModifiers::NONE,
-                        };
-                        if event_tx.send(Box::new(msg)).is_err() {
+                    response_buf.extend_from_slice(line.as_bytes());
+                    let (messages, consumed) = parse_responses(&response_buf);
+                    if consumed > 0 {
+                        response_buf.drain(..consumed);
+                    }
+                    for msg in messages {
+                        if event_tx.send(msg).is_err() {
                             return Ok(());
                         }
                     }
 
-                    // Send Enter key for the newline
+                    for ch in line.trim().chars() {
+                        let press = KeyPressMsg(Key {
+                            text: ch.to_string(),
+                            r#mod: crate::key::KeyMod::default(),
+                            code: KeyCode::Char(ch),
+                            shifted_code: None,
+                            base_code: None,
+                            is_repeat: false,
+                        });
+                        if event_tx.send(Box::new(press)).is_err() {
+                            return Ok(());
+                        }
+                    }
+
                     if line.ends_with('\n') {
-                        let msg = KeyMsg {
-                            key: KeyCode::Enter,
-                            modifiers: KeyModifiers::NONE,
-                        };
-                        if event_tx.send(Box::new(msg)).is_err() {
+                        let press = KeyPressMsg(Key {
+                            text: String::new(),
+                            r#mod: crate::key::KeyMod::default(),
+                            code: KeyCode::Enter,
+                            shifted_code: None,
+                            base_code: None,
+                            is_repeat: false,
+                        });
+                        if event_tx.send(Box::new(press)).is_err() {
                             return Ok(());
                         }
                     }
@@ -365,5 +372,236 @@ impl InputHandler {
         }
 
         Ok(())
+    }
+}
+
+fn drain_terminal_responses(
+    event_tx: &crate::event::EventSender,
+    buffer: &mut Vec<u8>,
+) -> Result<(), Error> {
+    let Ok(mut tty) = term::open_tty_input() else {
+        return Ok(());
+    };
+
+    let mut chunk = [0u8; 256];
+    loop {
+        match tty.read(&mut chunk) {
+            Ok(0) => break,
+            Ok(n) => buffer.extend_from_slice(&chunk[..n]),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => break,
+        }
+        // Only drain bytes already waiting; avoid blocking the crossterm loop.
+        break;
+    }
+
+    if buffer.is_empty() {
+        return Ok(());
+    }
+
+    let (messages, consumed) = parse_responses(buffer);
+    if consumed > 0 {
+        buffer.drain(..consumed);
+    }
+    for msg in messages {
+        if event_tx.send(msg).is_err() {
+            break;
+        }
+    }
+
+    if let Some((key_msg, consumed)) = ansi::kitty::try_parse_key(buffer) {
+        buffer.drain(..consumed);
+        let parsed = crate::key::key_event_from_kitty(&key_msg);
+        let boxed: crate::Msg = match parsed {
+            KeyEventMsg::Press(msg) => Box::new(msg),
+            KeyEventMsg::Release(msg) => Box::new(msg),
+        };
+        let _ = event_tx.send(boxed);
+    }
+
+    if let Some((mouse_ev, consumed)) = ansi::mouse::try_parse_mouse(buffer) {
+        buffer.drain(..consumed);
+        let (v2, legacy) = mouse_event_from_ansi(&mouse_ev);
+        let v2_boxed: crate::Msg = match v2 {
+            MouseEventMsg::Click(msg) => Box::new(msg),
+            MouseEventMsg::Release(msg) => Box::new(msg),
+            MouseEventMsg::Wheel(msg) => Box::new(msg),
+            MouseEventMsg::Motion(msg) => Box::new(msg),
+        };
+        let _ = event_tx.send(v2_boxed);
+        let _ = event_tx.send(Box::new(legacy));
+    }
+    Ok(())
+}
+
+fn mouse_event_from_ansi(ev: &ansi::mouse::MouseEvent) -> (MouseEventMsg, MouseMsg) {
+    use crate::key::KeyMod;
+    use ansi::mouse::MouseButton as ABtn;
+
+    let mut mods = KeyMod::default();
+    if ev.shift {
+        mods = mods.union(KeyMod::SHIFT);
+    }
+    if ev.alt {
+        mods = mods.union(KeyMod::ALT);
+    }
+    if ev.ctrl {
+        mods = mods.union(KeyMod::CTRL);
+    }
+
+    let button = match ev.button {
+        ABtn::Left => MouseButton::Left,
+        ABtn::Middle => MouseButton::Middle,
+        ABtn::Right => MouseButton::Right,
+        ABtn::WheelUp => MouseButton::WheelUp,
+        ABtn::WheelDown => MouseButton::WheelDown,
+        ABtn::WheelLeft => MouseButton::WheelLeft,
+        ABtn::WheelRight => MouseButton::WheelRight,
+        ABtn::Backward => MouseButton::Backward,
+        ABtn::Forward => MouseButton::Forward,
+        ABtn::None => MouseButton::None,
+        ABtn::Button10 | ABtn::Button11 => MouseButton::None,
+    };
+
+    let base = Mouse {
+        x: ev.x.max(0) as u16,
+        y: ev.y.max(0) as u16,
+        button,
+        r#mod: mods,
+    };
+
+    let legacy_kind = match (ev.wheel, ev.motion, ev.release, button) {
+        (_, _, true, _) => crossterm::event::MouseEventKind::Up(crossterm_button_legacy(button)),
+        (true, _, _, MouseButton::WheelUp) => crossterm::event::MouseEventKind::ScrollUp,
+        (true, _, _, MouseButton::WheelDown) => crossterm::event::MouseEventKind::ScrollDown,
+        (true, _, _, MouseButton::WheelLeft) => crossterm::event::MouseEventKind::ScrollLeft,
+        (true, _, _, MouseButton::WheelRight) => crossterm::event::MouseEventKind::ScrollRight,
+        (_, true, _, btn) if btn != MouseButton::None => {
+            crossterm::event::MouseEventKind::Drag(crossterm_button_legacy(btn))
+        }
+        (_, true, _, _) => crossterm::event::MouseEventKind::Moved,
+        (_, _, _, btn) if btn != MouseButton::None => {
+            crossterm::event::MouseEventKind::Down(crossterm_button_legacy(btn))
+        }
+        _ => crossterm::event::MouseEventKind::Moved,
+    };
+
+    let legacy = MouseMsg {
+        x: base.x,
+        y: base.y,
+        button: legacy_kind,
+        modifiers: mods.to_crossterm(),
+    };
+
+    let v2 = if ev.wheel {
+        MouseEventMsg::Wheel(MouseWheelMsg(base))
+    } else if ev.release {
+        MouseEventMsg::Release(MouseReleaseMsg(base))
+    } else if ev.motion || button == MouseButton::None {
+        MouseEventMsg::Motion(MouseMotionMsg(base))
+    } else {
+        MouseEventMsg::Click(MouseClickMsg(base))
+    };
+
+    (v2, legacy)
+}
+
+fn crossterm_button_legacy(btn: MouseButton) -> CMouseButton {
+    match btn {
+        MouseButton::Left => CMouseButton::Left,
+        MouseButton::Right => CMouseButton::Right,
+        MouseButton::Middle => CMouseButton::Middle,
+        _ => CMouseButton::Left,
+    }
+}
+
+fn send_key_event(event_tx: &crate::event::EventSender, key_event: KeyEvent) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        if !key_event.is_press() {
+            return true;
+        }
+    }
+
+    let Some(parsed) = key_event_from_crossterm(key_event) else {
+        return true;
+    };
+
+    let boxed: crate::Msg = match parsed {
+        KeyEventMsg::Press(msg) => Box::new(msg),
+        KeyEventMsg::Release(msg) => Box::new(msg),
+    };
+    event_tx.send(boxed).is_ok()
+}
+
+fn send_mouse_event(event_tx: &crate::event::EventSender, mouse_event: MouseEvent) -> bool {
+    let (v2, legacy) = mouse_event_from_crossterm(&mouse_event);
+    let v2_boxed: crate::Msg = match v2 {
+        MouseEventMsg::Click(msg) => Box::new(msg),
+        MouseEventMsg::Release(msg) => Box::new(msg),
+        MouseEventMsg::Wheel(msg) => Box::new(msg),
+        MouseEventMsg::Motion(msg) => Box::new(msg),
+    };
+    event_tx.send(v2_boxed).is_ok() && event_tx.send(Box::new(legacy)).is_ok()
+}
+
+fn mouse_event_from_crossterm(event: &MouseEvent) -> (MouseEventMsg, MouseMsg) {
+    use crate::key::KeyMod;
+
+    let base = Mouse {
+        x: event.column,
+        y: event.row,
+        button: MouseButton::None,
+        r#mod: KeyMod::from_crossterm(event.modifiers),
+    };
+
+    let legacy = MouseMsg {
+        x: event.column,
+        y: event.row,
+        button: event.kind,
+        modifiers: event.modifiers,
+    };
+
+    let v2 = match event.kind {
+        MouseEventKind::Down(btn) => MouseEventMsg::Click(MouseClickMsg(Mouse {
+            button: crossterm_button(btn),
+            ..base
+        })),
+        MouseEventKind::Up(btn) => MouseEventMsg::Release(MouseReleaseMsg(Mouse {
+            button: crossterm_button(btn),
+            ..base
+        })),
+        MouseEventKind::ScrollUp => MouseEventMsg::Wheel(MouseWheelMsg(Mouse {
+            button: MouseButton::WheelUp,
+            ..base
+        })),
+        MouseEventKind::ScrollDown => MouseEventMsg::Wheel(MouseWheelMsg(Mouse {
+            button: MouseButton::WheelDown,
+            ..base
+        })),
+        MouseEventKind::ScrollLeft => MouseEventMsg::Wheel(MouseWheelMsg(Mouse {
+            button: MouseButton::WheelLeft,
+            ..base
+        })),
+        MouseEventKind::ScrollRight => MouseEventMsg::Wheel(MouseWheelMsg(Mouse {
+            button: MouseButton::WheelRight,
+            ..base
+        })),
+        MouseEventKind::Moved => MouseEventMsg::Motion(MouseMotionMsg(base)),
+        MouseEventKind::Drag(btn) => MouseEventMsg::Motion(MouseMotionMsg(Mouse {
+            button: crossterm_button(btn),
+            ..base
+        })),
+    };
+
+    (v2, legacy)
+}
+
+fn crossterm_button(btn: CMouseButton) -> MouseButton {
+    match btn {
+        CMouseButton::Left => MouseButton::Left,
+        CMouseButton::Right => MouseButton::Right,
+        CMouseButton::Middle => MouseButton::Middle,
     }
 }

@@ -70,8 +70,8 @@ impl Position {
 
 // Top-level constants for convenience (Go-style names) are defined below.
 
-use crate::renderer::Renderer;
-use crate::renderer::default_renderer;
+use crate::output::OutputContext;
+use crate::output::default_output;
 use crate::utils::width_visible;
 use crate::whitespace::{WhitespaceOption, new_whitespace};
 
@@ -119,7 +119,7 @@ pub fn place(
     s: &str,
     opts: &[WhitespaceOption],
 ) -> String {
-    let r = default_renderer();
+    let r = default_output();
     r.place(width_px, height_px, h_pos, v_pos, s, opts)
 }
 
@@ -164,7 +164,7 @@ pub fn place_horizontal(
     s: &str,
     opts: &[WhitespaceOption],
 ) -> String {
-    let r = default_renderer();
+    let r = default_output();
     r.place_horizontal(width_px, pos, s, opts)
 }
 
@@ -204,13 +204,13 @@ pub fn place_horizontal(
 /// // Result: "  \n  \n  \n  \nHi"
 /// ```
 pub fn place_vertical(height_px: i32, pos: Position, s: &str, opts: &[WhitespaceOption]) -> String {
-    let r = default_renderer();
+    let r = default_output();
     r.place_vertical(height_px, pos, s, opts)
 }
 
-impl Renderer {
+impl OutputContext {
     /// Place a string inside a box of width x height at the given horizontal and
-    /// vertical positions using this renderer's settings.
+    /// vertical positions using this OutputContext's settings.
     ///
     /// This method combines horizontal and vertical positioning to place text
     /// within a box of the specified dimensions.
@@ -232,11 +232,11 @@ impl Renderer {
     ///
     /// ```no_run
     /// use lipgloss::position::{Position, CENTER};
-    /// use lipgloss::renderer::Renderer;
+    /// use lipgloss::output::OutputContext;
     /// use lipgloss::whitespace::WhitespaceOption;
     ///
-    /// let renderer = Renderer::default();
-    /// let result = renderer.place(
+    /// let OutputContext = OutputContext::default();
+    /// let result = OutputContext.place(
     ///     20,
     ///     5,
     ///     CENTER,
@@ -262,7 +262,7 @@ impl Renderer {
         )
     }
 
-    /// Place a string horizontally in a box of the given width using this renderer's settings.
+    /// Place a string horizontally in a box of the given width using this OutputContext's settings.
     ///
     /// This method positions text horizontally within a box, handling multi-line
     /// strings by aligning each line according to the position value.
@@ -282,11 +282,11 @@ impl Renderer {
     ///
     /// ```no_run
     /// use lipgloss::position::{Position, CENTER};
-    /// use lipgloss::renderer::Renderer;
+    /// use lipgloss::output::OutputContext;
     /// use lipgloss::whitespace::WhitespaceOption;
     ///
-    /// let renderer = Renderer::default();
-    /// let result = renderer.place_horizontal(
+    /// let OutputContext = OutputContext::default();
+    /// let result = OutputContext.place_horizontal(
     ///     20,
     ///     CENTER,
     ///     "Hello\nWorld",
@@ -341,7 +341,7 @@ impl Renderer {
         out
     }
 
-    /// Place a string vertically in a box of the given height using this renderer's settings.
+    /// Place a string vertically in a box of the given height using this OutputContext's settings.
     ///
     /// This method positions text vertically within a box by adding empty lines
     /// above and/or below the content according to the position value.
@@ -361,11 +361,11 @@ impl Renderer {
     ///
     /// ```no_run
     /// use lipgloss::position::{Position, CENTER};
-    /// use lipgloss::renderer::Renderer;
+    /// use lipgloss::output::OutputContext;
     /// use lipgloss::whitespace::WhitespaceOption;
     ///
-    /// let renderer = Renderer::default();
-    /// let result = renderer.place_vertical(
+    /// let OutputContext = OutputContext::default();
+    /// let result = OutputContext.place_vertical(
     ///     10,
     ///     CENTER,
     ///     "Hello\nWorld",

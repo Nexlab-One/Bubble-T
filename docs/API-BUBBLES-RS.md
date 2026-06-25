@@ -7,8 +7,8 @@ Reusable TUI components (`crates/bubble-t-widgets`), porting [charmbracelet/bubb
 Each component is a self-contained model with:
 
 - Constructor (`new()`, module-specific factories)
-- `update(msg) -> Option<Cmd>` — process bubble-t messages
-- `view() -> String` — render styled output
+- `update(msg) -> Option<Cmd>` — process v2 messages (`KeyPressMsg`, mouse, paste)
+- `view() -> View` — render styled output (use `.content` when embedding in strings)
 - `Component` trait — `focus()`, `blur()`, `focused()` for keyboard navigation
 
 Components do not implement `bubble_t::Model` directly; compose them inside your application `Model`.

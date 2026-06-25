@@ -2,7 +2,7 @@
 //!
 //! Demonstrates a credit card form with validation using bubble-t-widgets
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::{key, textinput};
 use lipgloss_extras::lipgloss::{Color, LEFT, Style, join_horizontal, join_vertical};
 
@@ -247,7 +247,7 @@ impl Model for CreditCardForm {
         cmd
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let hot_pink = Color::from("#FF06B7");
         let dark_gray = Color::from("#767676");
         let input_style = Style::new().foreground(hot_pink);
@@ -283,7 +283,7 @@ impl Model for CreditCardForm {
 
         let exp_cvv_section = join_vertical(LEFT, &[&labels_row, &inputs_row]);
 
-        join_vertical(
+        View::new(join_vertical(
             LEFT,
             &[
                 " Total: $21.50:",
@@ -294,14 +294,13 @@ impl Model for CreditCardForm {
                 "",
                 &continue_style.render(" Continue ->"),
             ],
-        )
+        ))
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<CreditCardForm>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
     let _ = program.run().await?;
@@ -315,7 +314,7 @@ mod tests {
     #[test]
     fn test_layout_alignment() {
         let (model, _) = CreditCardForm::init();
-        let view = model.view();
+        let view = model.view().content;
 
         println!("=== Credit Card Form Layout ===");
         println!("{}", view);

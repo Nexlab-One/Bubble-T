@@ -226,7 +226,7 @@ pub use types::{FilterState, FilterStateInfo, Item, ItemDelegate};
 pub use defaultitem::{DefaultDelegate, DefaultItem, DefaultItemStyles};
 
 use crate::{help, key};
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg};
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, View, legacy_key_msg};
 use crossterm::event::KeyCode;
 
 // Help integration - provides contextual key bindings based on current state
@@ -347,7 +347,7 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
     /// - Synchronizes the paginator component to reflect the current page
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
         if self.filter_state == FilterState::Filtering {
-            if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
+            if let Some(key_msg) = legacy_key_msg(&msg) {
                 match key_msg.key {
                     crossterm::event::KeyCode::Esc => {
                         self.filter_state = if self.filtered_items.is_empty() {
@@ -410,8 +410,8 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
             return None;
         }
 
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keymap.cursor_up.matches(key_msg) {
+        if let Some(key_msg) = legacy_key_msg(&msg) {
+            if self.keymap.cursor_up.matches(&key_msg) {
                 if self.cursor > 0 {
                     if self.is_cursor_at_viewport_top() {
                         // Page-turning behavior: move to last item of previous page
@@ -424,7 +424,7 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
                         self.sync_viewport_with_cursor();
                     }
                 }
-            } else if self.keymap.cursor_down.matches(key_msg) {
+            } else if self.keymap.cursor_down.matches(&key_msg) {
                 if self.cursor < self.len().saturating_sub(1) {
                     if self.is_cursor_at_viewport_bottom() {
                         // Page-turning behavior: move to first item of next page
@@ -436,15 +436,15 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
                         self.sync_viewport_with_cursor();
                     }
                 }
-            } else if self.keymap.go_to_start.matches(key_msg) {
+            } else if self.keymap.go_to_start.matches(&key_msg) {
                 self.cursor = 0;
                 // Adjust viewport to show the beginning of the list when jumping to start.
                 self.sync_viewport_with_cursor();
-            } else if self.keymap.go_to_end.matches(key_msg) {
+            } else if self.keymap.go_to_end.matches(&key_msg) {
                 self.cursor = self.len().saturating_sub(1);
                 // Adjust viewport to show the end of the list when jumping to last item.
                 self.sync_viewport_with_cursor();
-            } else if self.keymap.next_page.matches(key_msg) {
+            } else if self.keymap.next_page.matches(&key_msg) {
                 // Page Down: Move cursor forward by one page (viewport height).
                 // This provides quick navigation through long lists.
                 let items_len = self.len();
@@ -452,27 +452,27 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
                     self.cursor = (self.cursor + self.per_page).min(items_len - 1);
                     self.sync_viewport_with_cursor();
                 }
-            } else if self.keymap.prev_page.matches(key_msg) {
+            } else if self.keymap.prev_page.matches(&key_msg) {
                 // Page Up: Move cursor backward by one page (viewport height).
                 // Saturating subtraction ensures we don't underflow.
                 self.cursor = self.cursor.saturating_sub(self.per_page);
                 self.sync_viewport_with_cursor();
-            } else if self.keymap.filter.matches(key_msg) {
+            } else if self.keymap.filter.matches(&key_msg) {
                 self.filter_state = FilterState::Filtering;
                 // Return focus command to enable cursor blinking in filter input
                 return Some(self.filter_input.focus());
-            } else if self.keymap.clear_filter.matches(key_msg) {
+            } else if self.keymap.clear_filter.matches(&key_msg) {
                 self.filter_input.set_value("");
                 self.filter_state = FilterState::Unfiltered;
                 self.filtered_items.clear();
                 self.cursor = 0;
                 self.update_pagination();
-            } else if self.keymap.show_full_help.matches(key_msg)
-                || self.keymap.close_full_help.matches(key_msg)
+            } else if self.keymap.show_full_help.matches(&key_msg)
+                || self.keymap.close_full_help.matches(&key_msg)
             {
                 self.help.show_all = !self.help.show_all;
                 self.update_pagination(); // Recalculate layout since help height changes
-            } else if self.keymap.quit.matches(key_msg) {
+            } else if self.keymap.quit.matches(&key_msg) {
                 return Some(bubble_t::quit());
             } else if key_msg.key == crossterm::event::KeyCode::Enter {
                 // Handle item selection
@@ -538,7 +538,7 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
     ///
     /// ```
     /// # use bubble_t_widgets::list::{Model, DefaultDelegate, DefaultItem};
-    /// # use bubble_t::Model as BubbleTeaModel;
+    /// # use bubble_t::{Model as BubbleTeaModel, View};
     /// let list = Model::new(
     ///     vec![DefaultItem::new("Item 1", "Description")],
     ///     DefaultDelegate::new(),
@@ -548,7 +548,7 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
     /// let output = list.view();
     /// // Contains formatted list with title, items, and status bar
     /// ```
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut sections = Vec::new();
 
         // Header: Title or filter input
@@ -590,6 +590,6 @@ impl<I: Item + Send + Sync + 'static> BubbleTeaModel for Model<I> {
             sections.push(footer);
         }
 
-        sections.join("\n")
+        View::new(sections.join("\n"))
     }
 }

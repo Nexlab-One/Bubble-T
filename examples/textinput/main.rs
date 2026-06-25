@@ -2,7 +2,7 @@
 //!
 //! Port of Bubble Tea's `textinput` example using `bubble-t-widgets::textinput`.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use bubble_t_widgets::textinput;
 
@@ -67,22 +67,21 @@ impl Model for TextInputModel {
         self.text_input.update(msg)
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
-            return String::new();
+            return View::new("");
         }
 
-        format!(
+        View::new(format!(
             "What’s your favorite Pokémon?\n\n{}\n\n(esc to quit)\n",
             self.text_input.view()
-        )
+        ))
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<TextInputModel>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

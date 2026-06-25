@@ -1,6 +1,6 @@
 use std::env;
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, enter_alt_screen, exit_alt_screen, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 
 // Synthetic message used to trigger the initial render immediately after startup.
@@ -87,11 +87,7 @@ impl Model for ExecModel {
         if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
             if self.keys.toggle_altscreen.matches(key_msg) {
                 self.altscreen_active = !self.altscreen_active;
-                return Some(if self.altscreen_active {
-                    enter_alt_screen()
-                } else {
-                    exit_alt_screen()
-                });
+                return None;
             }
 
             if self.keys.open_editor.matches(key_msg) {
@@ -111,8 +107,8 @@ impl Model for ExecModel {
         None
     }
 
-    fn view(&self) -> String {
-        if let Some(err) = &self.err {
+    fn view(&self) -> View {
+        let content = if let Some(err) = &self.err {
             format!("Error: {}\n", err)
         } else {
             let mode = if self.altscreen_active {
@@ -124,7 +120,10 @@ impl Model for ExecModel {
                 "Current mode: {}\n\nPress 'e' to open your EDITOR.\nPress 'a' to toggle the altscreen\nPress 'q' to quit.\n",
                 mode
             )
-        }
+        };
+        let mut view = View::new(content);
+        view.alt_screen = self.altscreen_active;
+        view
     }
 }
 

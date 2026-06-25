@@ -1,6 +1,6 @@
 # bubble-t API Reference
 
-Core MVU framework crate (`crates/bubble-t`). Concepts align with [Bubble Tea (Go)](https://github.com/charmbracelet/bubbletea): a `Program` drives an event loop, your `Model` handles messages, and `Cmd` values perform async side effects.
+Core MVU framework crate (`crates/bubble-t`). Concepts align with [Bubble Tea v2 (Go)](https://github.com/charmbracelet/bubbletea): a `Program` drives an event loop, your `Model` handles messages, and `Cmd` values perform async side effects.
 
 ## Architecture
 
@@ -9,99 +9,110 @@ Model (state)  ──update(msg)──►  optional Cmd
      ▲                                │
      │                                ▼
      └──────────── Msg ◄──── async / IO / timers
-     
-view() ──► String ──► Terminal
+
+view() ──► View ──► CursedRenderer (cellbuf diff) ──► Terminal
 ```
 
-Every message is a `Box<dyn Any + Send + Sync>` (`Msg`). Downcast with `msg.downcast_ref::<T>()`.
+Every message is a `Box<dyn Any + Send>` (`Msg`). Downcast with `msg.downcast_ref::<T>()`.
+
+## Foundation crates
+
+| Crate | Role |
+|-------|------|
+| `ansi` | Escape-sequence builders + incremental parser |
+| `cellbuf` | Width-aware styled cell grid + screen diff |
+| `colorprofile` | Profile detection + ANSI downsampling |
+| `term` | Cross-platform raw mode / TTY / size |
+| `lipgloss` | Styled string rendering (compositing via `Canvas`/`Compositor`) |
 
 ## Core traits and types
 
 ### `Model`
 
 ```rust
-pub trait Model: Send + 'static {
-    fn init() -> (Self, Option<Cmd>) where Self: Sized;
+pub trait Model: Send + Sized + 'static {
+    fn init() -> (Self, Option<Cmd>);
     fn update(&mut self, msg: Msg) -> Option<Cmd>;
-    fn view(&self) -> String;
+    fn view(&self) -> View;
 }
 ```
 
-- **`init`** — construct initial state; return optional startup command (timers, HTTP, etc.).
-- **`update`** — pure state transition; return `None` or a `Cmd` for side effects.
-- **`view`** — render current state as a string (styled via lipgloss in application code).
+- **`init`** — construct initial state; return optional startup command.
+- **`update`** — state transition; return `None` or a `Cmd`.
+- **`view`** — declarative frame: content, cursor, terminal modes, title, progress bar, optional `on_mouse`.
+
+### `View`
+
+```rust
+let mut view = View::new(content);
+view.alt_screen = true;
+view.mouse_mode = MouseMode::CellMotion;
+view.cursor = Some(Cursor::new(Position::new(x, y)));
+view.window_title = "My App".into();
+view.on_mouse = Some(Box::new(|msg| { /* handle MouseMsg */ None }));
+```
+
+The runtime diffs `View` fields each frame and applies terminal changes (no imperative toggle commands).
 
 ### `Program` / `ProgramBuilder`
 
 ```rust
 let program = Program::<MyModel>::builder()
-    .with_alt_screen(true)
+    .with_color_profile(profile)
+    .with_window_size(120, 40)
     .build()?;
 program.run().await?;
 ```
 
-`Program` owns the terminal, input loop, and command executor. Use `ProgramConfig` for mouse, bracketed paste, and focus reporting.
+Declarative terminal options come from `View` each frame. Builder options cover color profile, window size, environment, and I/O overrides.
 
 ### `Cmd`
 
-Type alias: `Pin<Box<dyn Future<Output = Option<Msg>> + Send>>`.
-
-Constructors (re-exported from `command`):
+Async side effects returning optional messages. Key constructors:
 
 | Function | Purpose |
 |----------|---------|
-| `tick(duration, f)` | Periodic timer messages |
-| `every(duration, f)` | Repeating interval |
-| `batch(cmds)` | Run commands concurrently |
-| `sequence(cmds)` | Run commands in order |
-| `quit()` | Exit the program |
-| `window_size()` | Request terminal dimensions |
-| `set_window_title(title)` | Set terminal title |
-| `exec_process(cmd)` | Spawn subprocess |
-| `enable_mouse_*` / `disable_mouse` | Mouse capture |
-| `enter_alt_screen` / `exit_alt_screen` | Alternate screen buffer |
+| `tick` / `every` | Timers |
+| `batch` / `sequence` | Command composition |
+| `quit` | Exit |
+| `window_size` | Request terminal dimensions |
+| `read_clipboard` / `set_clipboard` | OSC 52 clipboard |
+| `request_terminal_version` / `request_capability` | Terminal queries |
+| `request_foreground_color` / `request_background_color` | OSC 10–12 color queries |
+| `exec_process` / `suspend` | Subprocess / shell suspend |
+
+Imperative alt-screen/mouse/focus toggles are **removed** — set fields on `View` instead.
 
 ## Messages (`event` module)
 
-Common message types:
+v2 keyboard:
 
-- `KeyMsg` — keyboard input (`key`, `modifiers`)
-- `MouseMsg` — mouse events
-- `WindowSizeMsg` — `{ width, height }`
-- `PasteMsg` — bracketed paste content
-- `QuitMsg`, `FocusMsg`, `BlurMsg`
+- `KeyPressMsg` / `KeyReleaseMsg` — `code`, `text`, `mod`, `shifted_code`, `base_code`, `is_repeat`
+- `KeyMsg` — union wrapper for legacy matching via `legacy_key_msg()`
 
-Custom messages: `Box::new(MyMsg { ... }) as Msg`.
+Mouse (v2 + legacy):
 
-## Terminal abstraction
+- `MouseClickMsg`, `MouseReleaseMsg`, `MouseWheelMsg`, `MouseMotionMsg`
+- `MouseMsg` — legacy shape still emitted for compatibility; `View::on_mouse` receives this
 
-- `Terminal` trait — real terminal I/O
-- `DummyTerminal` — testing without a TTY
-- `TerminalInterface` — abstraction used by `Program`
+Other:
 
-## Gradient utilities
+- `PasteMsg`, `PasteStartMsg`, `PasteEndMsg`
+- `WindowSizeMsg`, `ClipboardMsg`, `ColorProfileMsg`, `EnvMsg`
+- `ForegroundColorMsg`, `BackgroundColorMsg`, `CursorColorMsg`
+- `TerminalVersionMsg`, `CapabilityMsg`, `CursorPositionMsg`, `ModeReportMsg`
+- `KeyboardEnhancementsMsg`, `FocusMsg`, `BlurMsg`, `QuitMsg`
 
-`gradient_filled_segment`, `charm_default_gradient`, `lerp_rgb` — used by progress bar examples for Charm-style color ramps.
+## Renderer
 
-## Memory monitoring
+`CursedRenderer` diffs styled content through `cellbuf` with `colorprofile` downsampling, synchronized output (mode 2026), and Unicode width mode (2027).
 
-`MemoryMonitor`, `MemorySnapshot`, `MemoryHealth` — optional allocation tracking during development.
-
-## Features
-
-| Feature | Default | Description |
-|---------|---------|-------------|
-| `tokio-runtime` | yes | Async runtime (recommended) |
-| `logging` | yes | File logging via `log` crate |
-| `mouse-support` | no | Compile-time flag for mouse handlers |
-| `testing` | no | Test helpers |
-
-## Typical update loop pattern
+## Typical update loop
 
 ```rust
 fn update(&mut self, msg: Msg) -> Option<Cmd> {
-    if let Some(key) = msg.downcast_ref::<KeyMsg>() {
-        if key.key == KeyCode::Char('q') {
+    if let Some(key) = msg.downcast_ref::<KeyPressMsg>() {
+        if key.code == crossterm::event::KeyCode::Char('q') {
             return Some(quit());
         }
     }
@@ -110,18 +121,21 @@ fn update(&mut self, msg: Msg) -> Option<Cmd> {
     }
     None
 }
+
+fn view(&self) -> View {
+    View::new(self.render_content())
+}
 ```
 
-## Relation to Go Bubble Tea
+## Relation to Go Bubble Tea v2
 
-| Go | bubble-t |
-|----|---------|
-| `tea.Model` | `Model` trait |
-| `tea.Msg` | `Msg` |
-| `tea.Cmd` | `Cmd` |
+| Go v2 | bubble-t |
+|-------|----------|
+| `tea.Model` | `Model` |
+| `tea.View` | `View` |
+| `tea.KeyPressMsg` | `KeyPressMsg` |
 | `tea.Program` | `Program` |
-| `tea.Batch` | `batch()` |
-| `tea.Sequence` | `sequence()` |
-| `tea.Quit` | `quit()` |
+| `tea.WithColorProfile` | `ProgramBuilder::with_color_profile` |
+| OSC 52 clipboard | `set_clipboard` / `read_clipboard` |
 
-The Rust port uses async/await (`tokio`) instead of Go goroutines, but the message/command separation is preserved.
+The Rust port uses Tokio async/await instead of Go goroutines.

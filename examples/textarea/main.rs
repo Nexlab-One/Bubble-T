@@ -10,7 +10,7 @@
 //! This example shows a text area where users can write multi-line text
 //! with proper cursor handling and line navigation.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
 
 /// Message for cursor blinking
@@ -284,7 +284,7 @@ impl Model for TextAreaModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut view = String::from("Tell me a story.\n\n");
 
         let display_content = self.get_display_content();
@@ -333,6 +333,8 @@ impl Model for TextAreaModel {
 
         view.push_str("\n(ctrl+c to quit, esc to blur/focus)");
 
+        let mut view = View::new(view);
+        view.alt_screen = true;
         view
     }
 }
@@ -343,7 +345,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create and run the program
     let program = Program::<TextAreaModel>::builder()
-        .alt_screen(true) // Use alternate screen for cleaner display
+        // Use alternate screen for cleaner display
         .signal_handler(true) // Enable Ctrl+C handling
         .build()?;
 

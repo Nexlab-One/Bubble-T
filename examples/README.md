@@ -1,5 +1,14 @@
 ## Examples Gallery
 
+### [Capability](./capability/)
+Terminal capability queries (XTGETTCAP).
+
+### [Cursor Color](./cursor-color/)
+Query and set terminal cursor color (OSC 12).
+
+### [Keyboard Enhancements](./keyboard-enhancements/)
+Kitty keyboard protocol and modifyOtherKeys demo.
+
 ### [Altscreen Toggle](./altscreen-toggle/)
 ![Altscreen Toggle](./altscreen-toggle/altscreen-toggle.gif)
 

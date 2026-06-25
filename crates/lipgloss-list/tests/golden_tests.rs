@@ -158,11 +158,11 @@ fn golden_complex_sublist() {
     //   B. Deeper
     //     1. a
     //     2. b
-    //     3. Even Deeper, inherit parent renderer
+    //     3. Even Deeper, inherit parent OutputContext
     //       * sus
     //       * d minor
     //       * f#
-    //       * One ore level, with another renderer
+    //       * One ore level, with another OutputContext
     //         - a      \n  multine\n  string
     //         - hoccus poccus
     //         - abra kadabra
@@ -191,7 +191,7 @@ fn golden_complex_sublist() {
     let arabic_list = List::new().enumerator(arabic).items(vec![
         "a",
         "b",
-        "Even Deeper, inherit parent renderer",
+        "Even Deeper, inherit parent OutputContext",
     ]);
 
     // Asterisk list under the third arabic item
@@ -199,7 +199,7 @@ fn golden_complex_sublist() {
         "sus",
         "d minor",
         "f#",
-        "One ore level, with another renderer",
+        "One ore level, with another OutputContext",
     ]);
 
     // Dash list under the fourth star item

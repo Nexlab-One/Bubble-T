@@ -4,7 +4,7 @@
 //! This example demonstrates the improved filepicker with proper message ordering,
 //! robust viewport handling, and better user experience.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit, tick};
 use bubble_t_widgets::filepicker;
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use std::time::Duration;
@@ -164,9 +164,9 @@ impl Model for FilePickerModel {
         self.filepicker.update(msg)
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
-            return String::new();
+            return View::new("");
         }
 
         let mut output = String::new();
@@ -183,17 +183,18 @@ impl Model for FilePickerModel {
         }
 
         output.push_str("\n\n");
-        output.push_str(&self.filepicker.view());
+        output.push_str(&self.filepicker.view().content);
         output.push('\n');
 
-        output
+        let mut view = View::new(output);
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<FilePickerModel>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

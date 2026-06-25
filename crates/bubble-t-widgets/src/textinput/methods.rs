@@ -3,7 +3,7 @@
 use super::model::{Model, paste};
 use super::types::{EchoMode, PasteErrMsg, PasteMsg, ValidateFunc};
 use crate::Component;
-use bubble_t::{Cmd, KeyMsg, Msg};
+use bubble_t::{Cmd, KeyMsg, Msg, legacy_key_msg};
 use crossterm::event::{KeyCode, KeyModifiers};
 
 impl Model {
@@ -458,18 +458,18 @@ impl Model {
         }
 
         // Handle key messages
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
+        if let Some(key_msg) = legacy_key_msg(&msg) {
             // Check key bindings in order of priority
-            if let Some(cmd) = self.handle_suggestion_keys(key_msg) {
+            if let Some(cmd) = self.handle_suggestion_keys(&key_msg) {
                 return cmd;
             }
-            if let Some(cmd) = self.handle_clipboard_keys(key_msg) {
+            if let Some(cmd) = self.handle_clipboard_keys(&key_msg) {
                 return cmd;
             }
 
-            self.handle_deletion_keys(key_msg);
-            self.handle_movement_keys(key_msg);
-            self.handle_character_input(key_msg);
+            self.handle_deletion_keys(&key_msg);
+            self.handle_movement_keys(&key_msg);
+            self.handle_character_input(&key_msg);
 
             self.update_suggestions();
         }

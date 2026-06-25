@@ -1,4 +1,4 @@
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style, normal_border};
 use lipgloss_extras::table::{HEADER_ROW, Table};
@@ -705,7 +705,7 @@ impl Model for AppModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // If we have a message, display it instead of the table
         if let Some(ref message) = self.message {
             let message_style = Style::new()
@@ -714,7 +714,7 @@ impl Model for AppModel {
                 .padding(1, 2, 1, 2)
                 .border(normal_border())
                 .border_foreground(Color::from("240"));
-            return message_style.render(message);
+            return View::new(message_style.render(message));
         }
 
         let base_style = Style::new().padding(0, 1, 0, 1);
@@ -776,13 +776,15 @@ impl Model for AppModel {
             .border(normal_border())
             .border_foreground(Color::from("240"));
 
-        base_border_style.render(&table_output) + "\n"
+        let mut view = View::new(base_border_style.render(&table_output));
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let program = Program::<AppModel>::builder().alt_screen(true).build()?;
+    let program = Program::<AppModel>::builder().build()?;
 
     if let Err(err) = program.run().await {
         match err {

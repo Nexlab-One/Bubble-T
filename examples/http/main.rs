@@ -1,4 +1,4 @@
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use crossterm::event::{KeyCode, KeyModifiers};
 use http::StatusCode;
 use std::time::Duration;
@@ -58,7 +58,7 @@ impl Model for HttpModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut s = format!("Checking {}...", URL);
 
         if let Some(error) = &self.error {
@@ -74,7 +74,7 @@ impl Model for HttpModel {
         }
 
         s.push('\n');
-        s
+        View::new(s)
     }
 }
 

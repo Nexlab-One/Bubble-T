@@ -1,4 +1,4 @@
-use bubble_t::{Cmd, KeyMsg, Model, MouseMotion, MouseMsg, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, MouseMode, MouseMsg, Msg, Program, View, quit};
 use crossterm::event::{KeyCode, KeyModifiers, MouseEventKind};
 
 // A simple program that opens the alternate screen buffer and displays mouse
@@ -43,7 +43,7 @@ impl Model for MouseModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut output = "Do mouse stuff. When you're done press q to quit.\n\n".to_string();
 
         if self.mouse_events.is_empty() {
@@ -55,7 +55,10 @@ impl Model for MouseModel {
             }
         }
 
-        output
+        let mut view = View::new(output);
+        view.alt_screen = true;
+        view.mouse_mode = MouseMode::AllMotion;
+        view
     }
 }
 
@@ -93,10 +96,7 @@ fn format_mouse_event(mouse: &MouseMsg) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let program = Program::<MouseModel>::builder()
-        .alt_screen(true)
-        .mouse_motion(MouseMotion::All)
-        .build()?;
+    let program = Program::<MouseModel>::builder().build()?;
 
     program.run().await?;
     Ok(())

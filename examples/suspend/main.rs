@@ -1,4 +1,4 @@
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, ResumeMsg, interrupt, quit, suspend};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, ResumeMsg, View, interrupt, quit, suspend};
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::process;
 
@@ -56,12 +56,12 @@ impl Model for SuspendModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.suspending || self.quitting {
-            return String::new();
+            return View::new("");
         }
 
-        "\nPress ctrl-z to suspend, ctrl+c to interrupt, q, or esc to exit\n".to_string()
+        View::new("\nPress ctrl-z to suspend, ctrl+c to interrupt, q, or esc to exit\n".to_string())
     }
 }
 

@@ -11,7 +11,7 @@
 //! like tmux, screen, or certain configurations may ignore title changes.
 //! Try running directly in your terminal (not through cargo run) for best results.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, set_window_title};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use lipgloss_extras::lipgloss::{Color, Style};
 
 /// Message for title updates
@@ -26,12 +26,7 @@ struct SetWindowTitleModel {
 
 impl Model for SetWindowTitleModel {
     fn init() -> (Self, Option<Cmd>) {
-        let model = SetWindowTitleModel { title_set: false };
-
-        // Set the window title to "Bubble Tea Example" like the Go version
-        let set_title_cmd = set_window_title("Bubble Tea Example".to_string());
-
-        (model, Some(set_title_cmd))
+        (SetWindowTitleModel { title_set: false }, None)
     }
 
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
@@ -49,7 +44,7 @@ impl Model for SetWindowTitleModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut content = String::new();
 
         // Title for the app
@@ -81,7 +76,9 @@ impl Model for SetWindowTitleModel {
             "Note: If the title doesn't change, your terminal might not support it\nor may be configured to ignore title changes."
         ));
 
-        content
+        let mut view = View::new(content);
+        view.window_title = "Bubble Tea Example".to_string();
+        view
     }
 }
 

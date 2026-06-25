@@ -22,12 +22,18 @@
 //! - Efficient rendering with buffering
 
 use crate::Error;
+use crate::renderer::{CursedRenderer, RenderFrameOptions};
+use crate::view::Cursor;
+use ansi::background::set_cursor_color;
+use ansi::cursor::cursor_position;
+use ansi::mode::{
+    MODE_MOUSE_EXT_SGR, MODE_MOUSE_NORMAL, MODE_MOUSE_X10, Mode, RESET_MODE_BRACKETED_PASTE,
+    SET_MODE_BRACKETED_PASTE, reset_mode, set_mode,
+};
+use ansi::title::set_window_title as ansi_set_window_title;
 use crossterm::{
     cursor::{Hide, Show},
-    event::{
-        DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
-        EnableFocusChange, EnableMouseCapture,
-    },
+    event::{DisableFocusChange, EnableFocusChange},
     execute,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -297,7 +303,16 @@ pub trait TerminalInterface {
     ///
     /// Returns an error if the content cannot be written to the terminal
     /// or output writer.
+    /// Render the provided content to the terminal.
     async fn render(&mut self, content: &str) -> Result<(), Error>;
+    /// Sets the terminal window title (OSC 2). Empty titles are ignored.
+    async fn set_window_title(&mut self, title: &str) -> Result<(), Error>;
+    /// Moves the text cursor to a 0-based cell position.
+    async fn set_cursor_position(&mut self, x: u16, y: u16) -> Result<(), Error>;
+    /// Applies cursor shape from a declarative [`Cursor`].
+    async fn set_cursor_style(&mut self, cursor: &Cursor) -> Result<(), Error>;
+    /// Writes raw bytes to the active output stream.
+    async fn write_raw(&mut self, data: &[u8]) -> Result<(), Error>;
     /// Get the current terminal size as (columns, rows).
     ///
     /// Returns the current dimensions of the terminal in character cells.
@@ -366,15 +381,18 @@ pub trait TerminalInterface {
 /// # Ok(())
 /// # }
 /// ```
+const MODE_MOUSE_ALL_MOTION: Mode = Mode::Dec(1003);
+
+/// Terminal state manager using crossterm for actual terminal control.
 pub struct Terminal {
     raw_mode: bool,
     alt_screen: bool,
-    mouse_enabled: bool,
+    mouse_mode: crate::view::MouseMode,
     focus_reporting: bool,
+    bracketed_paste: bool,
     cursor_visible: bool,
+    term_state: Option<term::State>,
     output_writer: Option<Arc<Mutex<dyn AsyncWrite + Send + Unpin>>>,
-    /// Reusable buffer for string operations to minimize allocations
-    render_buffer: String,
 }
 
 impl Terminal {
@@ -388,12 +406,25 @@ impl Terminal {
         Ok(Self {
             raw_mode: false,
             alt_screen: false,
-            mouse_enabled: false,
+            mouse_mode: crate::view::MouseMode::None,
             focus_reporting: false,
+            bracketed_paste: false,
             cursor_visible: true,
+            term_state: None,
             output_writer,
-            render_buffer: String::with_capacity(8192), // Pre-allocate 8KB buffer
         })
+    }
+
+    async fn write_stdout_bytes(&mut self, data: &[u8]) -> Result<(), Error> {
+        if let Some(writer) = &mut self.output_writer {
+            use tokio::io::AsyncWriteExt;
+            writer.lock().await.write_all(data).await?;
+            writer.lock().await.flush().await?;
+        } else {
+            io::stdout().write_all(data)?;
+            io::stdout().flush()?;
+        }
+        Ok(())
     }
 }
 
@@ -403,20 +434,13 @@ impl TerminalInterface for Terminal {
     where
         Self: Sized,
     {
-        Ok(Self {
-            raw_mode: false,
-            alt_screen: false,
-            mouse_enabled: false,
-            focus_reporting: false,
-            cursor_visible: true,
-            output_writer,
-            render_buffer: String::with_capacity(8192),
-        })
+        Terminal::new(output_writer)
     }
 
     async fn enter_raw_mode(&mut self) -> Result<(), Error> {
         if !self.raw_mode {
-            terminal::enable_raw_mode()?;
+            let tty = term::open_tty()?;
+            self.term_state = Some(term::make_raw(&tty)?);
             self.raw_mode = true;
         }
         Ok(())
@@ -424,7 +448,10 @@ impl TerminalInterface for Terminal {
 
     async fn exit_raw_mode(&mut self) -> Result<(), Error> {
         if self.raw_mode {
-            terminal::disable_raw_mode()?;
+            if let Some(state) = self.term_state.take() {
+                let tty = term::open_tty()?;
+                term::restore(&tty, &state)?;
+            }
             self.raw_mode = false;
         }
         Ok(())
@@ -433,7 +460,6 @@ impl TerminalInterface for Terminal {
     async fn enter_alt_screen(&mut self) -> Result<(), Error> {
         if !self.alt_screen {
             execute!(io::stdout(), EnterAlternateScreen)?;
-            // Clear the alternate screen buffer immediately after entering
             execute!(io::stdout(), terminal::Clear(terminal::ClearType::All))?;
             io::stdout().flush()?;
             self.alt_screen = true;
@@ -451,9 +477,10 @@ impl TerminalInterface for Terminal {
     }
 
     async fn enable_mouse(&mut self) -> Result<(), Error> {
-        if !self.mouse_enabled {
-            execute!(io::stdout(), EnableMouseCapture)?;
-            self.mouse_enabled = true;
+        if self.mouse_mode != crate::view::MouseMode::CellMotion {
+            let seq = set_mode(&[MODE_MOUSE_NORMAL, MODE_MOUSE_EXT_SGR]);
+            self.write_stdout_bytes(seq.as_bytes()).await?;
+            self.mouse_mode = crate::view::MouseMode::CellMotion;
         }
         Ok(())
     }
@@ -463,13 +490,24 @@ impl TerminalInterface for Terminal {
     }
 
     async fn enable_mouse_all_motion(&mut self) -> Result<(), Error> {
-        self.enable_mouse().await
+        if self.mouse_mode != crate::view::MouseMode::AllMotion {
+            let seq = set_mode(&[MODE_MOUSE_NORMAL, MODE_MOUSE_ALL_MOTION, MODE_MOUSE_EXT_SGR]);
+            self.write_stdout_bytes(seq.as_bytes()).await?;
+            self.mouse_mode = crate::view::MouseMode::AllMotion;
+        }
+        Ok(())
     }
 
     async fn disable_mouse(&mut self) -> Result<(), Error> {
-        if self.mouse_enabled {
-            execute!(io::stdout(), DisableMouseCapture)?;
-            self.mouse_enabled = false;
+        if self.mouse_mode != crate::view::MouseMode::None {
+            let seq = reset_mode(&[
+                MODE_MOUSE_NORMAL,
+                MODE_MOUSE_ALL_MOTION,
+                MODE_MOUSE_EXT_SGR,
+                MODE_MOUSE_X10,
+            ]);
+            self.write_stdout_bytes(seq.as_bytes()).await?;
+            self.mouse_mode = crate::view::MouseMode::None;
         }
         Ok(())
     }
@@ -491,12 +529,20 @@ impl TerminalInterface for Terminal {
     }
 
     async fn enable_bracketed_paste(&mut self) -> Result<(), Error> {
-        execute!(io::stdout(), EnableBracketedPaste)?;
+        if !self.bracketed_paste {
+            self.write_stdout_bytes(SET_MODE_BRACKETED_PASTE.as_bytes())
+                .await?;
+            self.bracketed_paste = true;
+        }
         Ok(())
     }
 
     async fn disable_bracketed_paste(&mut self) -> Result<(), Error> {
-        execute!(io::stdout(), DisableBracketedPaste)?;
+        if self.bracketed_paste {
+            self.write_stdout_bytes(RESET_MODE_BRACKETED_PASTE.as_bytes())
+                .await?;
+            self.bracketed_paste = false;
+        }
         Ok(())
     }
 
@@ -522,68 +568,68 @@ impl TerminalInterface for Terminal {
     }
 
     async fn render(&mut self, content: &str) -> Result<(), Error> {
-        use crossterm::cursor::MoveTo;
-        use crossterm::terminal::{Clear, ClearType};
+        let mut renderer = CursedRenderer::new(80, 24, colorprofile::Profile::TrueColor);
+        let output = renderer.render(content, &RenderFrameOptions::default());
+        self.write_raw(output.as_bytes()).await
+    }
 
-        if let Some(writer) = &mut self.output_writer {
-            use tokio::io::AsyncWriteExt;
+    async fn write_raw(&mut self, data: &[u8]) -> Result<(), Error> {
+        self.write_stdout_bytes(data).await
+    }
 
-            // Pre-allocate buffer for efficient rendering
-            self.render_buffer.clear();
+    async fn set_window_title(&mut self, title: &str) -> Result<(), Error> {
+        if title.is_empty() {
+            return Ok(());
+        }
+        let seq = ansi_set_window_title(title);
+        self.write_stdout_bytes(seq.as_bytes()).await
+    }
 
-            // Reserve space for the clear sequence plus content
-            let estimated_size = 8 + content.len() + content.chars().filter(|&c| c == '\n').count();
-            self.render_buffer.reserve(estimated_size);
+    async fn set_cursor_position(&mut self, x: u16, y: u16) -> Result<(), Error> {
+        let seq = cursor_position(i32::from(y) + 1, i32::from(x) + 1);
+        self.write_stdout_bytes(seq.as_bytes()).await
+    }
 
-            // Add clear sequence
-            self.render_buffer.push_str("\x1b[H\x1b[2J");
-
-            // Efficiently replace newlines by iterating through chars
-            for ch in content.chars() {
-                if ch == '\n' {
-                    self.render_buffer.push_str("\r\n");
-                } else {
-                    self.render_buffer.push(ch);
-                }
-            }
-
-            writer
-                .lock()
-                .await
-                .write_all(self.render_buffer.as_bytes())
-                .await?;
-            writer.lock().await.flush().await?;
-        } else {
-            // Move cursor to top-left and clear entire screen
-            execute!(io::stdout(), MoveTo(0, 0))?;
-            execute!(io::stdout(), Clear(ClearType::All))?;
-
-            // Pre-allocate buffer for efficient rendering
-            self.render_buffer.clear();
-
-            // Reserve space for content plus newline replacements
-            let estimated_size = content.len() + content.chars().filter(|&c| c == '\n').count();
-            self.render_buffer.reserve(estimated_size);
-
-            // Efficiently replace newlines by iterating through chars
-            for ch in content.chars() {
-                if ch == '\n' {
-                    self.render_buffer.push_str("\r\n");
-                } else {
-                    self.render_buffer.push(ch);
-                }
-            }
-
-            print!("{}", self.render_buffer);
-            io::stdout().flush()?;
+    async fn set_cursor_style(&mut self, cursor: &Cursor) -> Result<(), Error> {
+        let shape = cursor_shape_param(cursor.shape, cursor.blink);
+        let seq = format!("\x1b[{shape} q");
+        self.write_stdout_bytes(seq.as_bytes()).await?;
+        if let Some(color) = cursor.color {
+            let hex = cursor_color_hex(color);
+            let seq = set_cursor_color(&hex);
+            self.write_stdout_bytes(seq.as_bytes()).await?;
         }
         Ok(())
     }
 
     fn size(&self) -> Result<(u16, u16), Error> {
+        if let Ok(size) = term::open_tty_size() {
+            return Ok((size.width, size.height));
+        }
         let (width, height) = terminal::size()?;
         Ok((width, height))
     }
+}
+
+fn cursor_shape_param(shape: crate::view::CursorShape, blink: bool) -> u8 {
+    match (shape, blink) {
+        (crate::view::CursorShape::Block, true) => 1,
+        (crate::view::CursorShape::Block, false) => 2,
+        (crate::view::CursorShape::Underline, true) => 3,
+        (crate::view::CursorShape::Underline, false) => 4,
+        (crate::view::CursorShape::Bar, true) => 5,
+        (crate::view::CursorShape::Bar, false) => 6,
+    }
+}
+
+fn cursor_color_hex(color: ansi::color::Color) -> String {
+    use ansi::color::{Color, indexed_to_rgb};
+    let rgb = match color {
+        Color::Rgb(c) => c,
+        Color::Indexed(i) => indexed_to_rgb(i.0),
+        Color::Basic(c) => indexed_to_rgb(c as u8),
+    };
+    format!("#{:02x}{:02x}{:02x}", rgb.r, rgb.g, rgb.b)
 }
 
 impl Drop for Terminal {
@@ -591,18 +637,32 @@ impl Drop for Terminal {
         if !self.cursor_visible {
             let _ = execute!(io::stdout(), Show);
         }
-        if self.mouse_enabled {
-            let _ = execute!(io::stdout(), DisableMouseCapture);
+        if self.mouse_mode != crate::view::MouseMode::None {
+            let _ = io::stdout().write_all(
+                reset_mode(&[
+                    MODE_MOUSE_NORMAL,
+                    MODE_MOUSE_ALL_MOTION,
+                    MODE_MOUSE_EXT_SGR,
+                    MODE_MOUSE_X10,
+                ])
+                .as_bytes(),
+            );
         }
         if self.focus_reporting {
             let _ = execute!(io::stdout(), DisableFocusChange);
+        }
+        if self.bracketed_paste {
+            let _ = io::stdout().write_all(RESET_MODE_BRACKETED_PASTE.as_bytes());
         }
         if self.alt_screen {
             let _ = execute!(io::stdout(), LeaveAlternateScreen);
             let _ = io::stdout().flush();
         }
-        if self.raw_mode {
-            let _ = terminal::disable_raw_mode();
+        if self.raw_mode
+            && let Some(state) = self.term_state.take()
+            && let Ok(tty) = term::open_tty()
+        {
+            let _ = term::restore(&tty, &state);
         }
     }
 }
@@ -709,7 +769,24 @@ impl TerminalInterface for DummyTerminal {
         }
         Ok(())
     }
+    async fn set_window_title(&mut self, _: &str) -> Result<(), Error> {
+        Ok(())
+    }
+    async fn set_cursor_position(&mut self, _: u16, _: u16) -> Result<(), Error> {
+        Ok(())
+    }
+    async fn set_cursor_style(&mut self, _: &Cursor) -> Result<(), Error> {
+        Ok(())
+    }
+    async fn write_raw(&mut self, data: &[u8]) -> Result<(), Error> {
+        if let Some(writer) = &mut self.output_writer {
+            use tokio::io::AsyncWriteExt;
+            writer.lock().await.write_all(data).await?;
+            writer.lock().await.flush().await?;
+        }
+        Ok(())
+    }
     fn size(&self) -> Result<(u16, u16), Error> {
-        Ok((0, 0))
+        Ok((80, 24))
     }
 }

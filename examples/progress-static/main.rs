@@ -16,7 +16,7 @@
 //! any key press, and automatically quit when reaching 100%.
 
 use bubble_t::gradient::gradient_filled_segment;
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, quit, tick};
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
 
@@ -137,16 +137,16 @@ impl Model for ProgressStaticModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         const PADDING: &str = "  "; // 2 spaces padding
 
-        format!(
+        View::new(format!(
             "\n{}{}\n\n{}{}",
             PADDING,
             self.progress.view_as(self.percent),
             PADDING,
             help_style().render("Press any key to quit")
-        )
+        ))
     }
 }
 

@@ -1,0 +1,17 @@
+[package]
+name = "terminal-image-example"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "terminal-image"
+path = "main.rs"
+
+[dependencies]
+ansi = { workspace = true }
+bubble-t = { workspace = true }
+cellbuf = { workspace = true }
+crossterm = { workspace = true }
+image = { version = "0.25.9", default-features = false, features = ["png"] }
+tokio = { workspace = true }

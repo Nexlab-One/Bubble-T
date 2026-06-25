@@ -1,4 +1,4 @@
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, WindowSizeMsg};
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, View, WindowSizeMsg};
 use bubble_t_widgets::key::{Binding, matches_binding, new_binding, with_help, with_keys_str};
 use bubble_t_widgets::list::{Item, ItemDelegate, Model as List};
 use bubble_t_widgets::paginator::Type as PaginatorType;
@@ -177,17 +177,19 @@ impl BubbleTeaModel for Model {
         self.list.update(msg)
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let quit_text_style = Style::new().margin(1, 0, 2, 4);
 
         if let Some(choice) = &self.choice {
-            return quit_text_style.render(&format!("{}? Sounds good to me.", choice));
+            return View::new(quit_text_style.render(&format!("{}? Sounds good to me.", choice)));
         }
         if self.quitting {
-            return quit_text_style.render("Not hungry? That's cool.");
+            return View::new(quit_text_style.render("Not hungry? That's cool."));
         }
 
-        format!("\n{}", self.list.view())
+        let mut view = View::new(format!("\n{}", self.list.view().content));
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -198,7 +200,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let result = {
         let program = bubble_t::Program::<Model>::builder()
-            .alt_screen(false) // Disable alt_screen to help with layout
+            // Disable alt_screen to help with layout
             .signal_handler(true)
             .build()?;
 

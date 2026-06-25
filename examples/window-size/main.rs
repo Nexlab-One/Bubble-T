@@ -9,7 +9,7 @@
 //! This example shows the current terminal dimensions and updates
 //! them in real-time when the terminal is resized.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit, window_size};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, quit, window_size};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 
 /// Key bindings for the window-size example
@@ -69,8 +69,8 @@ impl Model for WindowSizeModel {
         None
     }
 
-    fn view(&self) -> String {
-        if !self.ready {
+    fn view(&self) -> View {
+        let content = if !self.ready {
             "Getting terminal dimensions...\n\nPress any key to quit.".to_string()
         } else {
             let total_cells = self.width as u32 * self.height as u32;
@@ -85,7 +85,10 @@ impl Model for WindowSizeModel {
                  Press any key to quit.",
                 self.width, self.height, total_cells
             )
-        }
+        };
+        let mut view = View::new(content);
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -96,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create and run the program
     let program = Program::<WindowSizeModel>::builder()
-        .alt_screen(true) // Use alternate screen for cleaner display
+        // Use alternate screen for cleaner display
         .signal_handler(true) // Enable Ctrl+C handling
         .build()?;
 

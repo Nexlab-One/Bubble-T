@@ -7,7 +7,7 @@
 //! `Model` interface, facilitating migration and understanding for developers
 //! familiar with the Go version.
 
-use crate::{Cmd, Msg};
+use crate::{Cmd, Msg, View};
 
 /// The Model trait defines the core interface for bubble-t applications.
 ///
@@ -26,7 +26,7 @@ use crate::{Cmd, Msg};
 /// # Example
 ///
 /// ```rust
-/// use bubble_t::{Model, Msg, Cmd, KeyMsg};
+/// use bubble_t::{Model, Msg, Cmd, KeyMsg, View};
 ///
 /// struct Counter {
 ///     value: i32,
@@ -48,8 +48,8 @@ use crate::{Cmd, Msg};
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         format!("Counter: {} (↑/↓ to change)", self.value)
+///     fn view(&self) -> View {
+///         View::new(format!("Counter: {} (↑/↓ to change)", self.value))
 ///     }
 /// }
 /// ```
@@ -69,7 +69,7 @@ pub trait Model: Send + Sized + 'static {
     /// # Example
     ///
     /// ```rust
-    /// # use bubble_t::{Model, Cmd};
+    /// # use bubble_t::{Model, Cmd, View};
     /// # struct MyModel { count: i32 }
     /// # impl Model for MyModel {
     /// fn init() -> (Self, Option<Cmd>) {
@@ -77,7 +77,7 @@ pub trait Model: Send + Sized + 'static {
     ///     (MyModel { count: 0 }, None)
     /// }
     /// # fn update(&mut self, msg: bubble_t::Msg) -> Option<Cmd> { None }
-    /// # fn view(&self) -> String { String::new() }
+    /// # fn view(&self) -> View { View::new("") }
     /// # }
     /// ```
     fn init() -> (Self, Option<Cmd>);
@@ -101,7 +101,7 @@ pub trait Model: Send + Sized + 'static {
     /// # Example
     ///
     /// ```rust
-    /// # use bubble_t::{Model, Msg, Cmd, KeyMsg};
+    /// # use bubble_t::{Model, Msg, Cmd, KeyMsg, View};
     /// # struct MyModel { count: i32 }
     /// # impl Model for MyModel {
     /// # fn init() -> (Self, Option<Cmd>) { (MyModel { count: 0 }, None) }
@@ -119,23 +119,19 @@ pub trait Model: Send + Sized + 'static {
     ///         None
     ///     }
     /// }
-    /// # fn view(&self) -> String { String::new() }
+    /// # fn view(&self) -> View { View::new("") }
     /// # }
     /// ```
     fn update(&mut self, msg: Msg) -> Option<Cmd>;
 
-    /// Render the current model state as a string for terminal display.
+    /// Render the current model state as a declarative [`View`].
     ///
     /// This method is called whenever the terminal needs to be redrawn.
-    /// It should return a string representation of the current model state
-    /// that will be displayed to the user.
+    /// Return a [`View`] describing content and terminal options for this frame.
     ///
     /// # Returns
     ///
-    /// A `String` containing the rendered view. This can include:
-    /// - ANSI escape codes for colors and styling
-    /// - Newlines for multi-line layouts
-    /// - Unicode characters for advanced formatting
+    /// A [`View`] containing rendered content and terminal configuration.
     ///
     /// # Performance Notes
     ///
@@ -146,21 +142,21 @@ pub trait Model: Send + Sized + 'static {
     /// # Example
     ///
     /// ```rust
-    /// # use bubble_t::{Model, Msg, Cmd};
+    /// # use bubble_t::{Model, Msg, Cmd, View};
     /// # struct MyModel { count: i32, name: String }
     /// # impl Model for MyModel {
     /// # fn init() -> (Self, Option<Cmd>) { (MyModel { count: 0, name: "App".to_string() }, None) }
     /// # fn update(&mut self, msg: Msg) -> Option<Cmd> { None }
-    /// fn view(&self) -> String {
-    ///     format!(
+    /// fn view(&self) -> View {
+    ///     View::new(format!(
     ///         "Welcome to {}!\n\nCount: {}\n\nPress ↑/↓ to change",
     ///         self.name,
     ///         self.count
-    ///     )
+    ///     ))
     /// }
     /// # }
     /// ```
-    fn view(&self) -> String;
+    fn view(&self) -> View;
 }
 
 #[cfg(test)]
@@ -204,11 +200,11 @@ mod tests {
             None
         }
 
-        fn view(&self) -> String {
-            format!(
+        fn view(&self) -> View {
+            View::new(format!(
                 "Counter: {}\nStep: {}\n\nControls:\n↑/+ : Increment\n↓/- : Decrement\nr : Reset\ns : Toggle step (1/10)\nq : Quit",
                 self.count, self.step
-            )
+            ))
         }
     }
 
@@ -266,16 +262,16 @@ mod tests {
             None
         }
 
-        fn view(&self) -> String {
+        fn view(&self) -> View {
             let mut display = self.content.clone();
             display.insert(self.cursor, '|');
 
-            format!(
+            View::new(format!(
                 "Text Input ({}/{})\n\n{}\n\nControls:\nType to add text\n← → : Move cursor\nBackspace/Delete : Remove text\nHome/End : Jump to start/end\nEsc : Quit",
                 self.content.len(),
                 self.max_length,
                 display
-            )
+            ))
         }
     }
 
@@ -319,9 +315,9 @@ mod tests {
     fn test_counter_model_view() {
         let (model, _) = CounterModel::init();
         let view = model.view();
-        assert!(view.contains("Counter: 0"));
-        assert!(view.contains("Step: 1"));
-        assert!(view.contains("Controls:"));
+        assert!(view.content.contains("Counter: 0"));
+        assert!(view.content.contains("Step: 1"));
+        assert!(view.content.contains("Controls:"));
     }
 
     #[test]

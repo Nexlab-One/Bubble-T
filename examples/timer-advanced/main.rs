@@ -14,7 +14,7 @@
 //! - Visual progress indicators and status styling
 //! - Responsive layout that adapts to terminal width
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, quit};
 use bubble_t_widgets::key::{Binding, KeyMap, new_binding, with_help, with_keys_str};
 use bubble_t_widgets::timer::{
     Model as TimerModel, StartStopMsg, TickMsg, TimeoutMsg, new as new_timer,
@@ -420,9 +420,9 @@ impl Model for TimerApp {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
-            return "Thanks for using the Advanced Timer! 👋\n".to_string();
+            return View::new("Thanks for using the Advanced Timer! 👋\n");
         }
 
         let timer_status = self.render_timer_status();
@@ -433,7 +433,12 @@ impl Model for TimerApp {
             .foreground(Color::from("#333333"))
             .render(&"─".repeat((self.terminal_width as usize).min(60)));
 
-        format!("{}\n\n{}\n\n{}", timer_status, separator, help_view)
+        let mut view = View::new(format!(
+            "{}\n\n{}\n\n{}",
+            timer_status, separator, help_view
+        ));
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -441,7 +446,6 @@ impl Model for TimerApp {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<TimerApp>::builder()
         .signal_handler(true)
-        .alt_screen(true)
         .build()?;
 
     program.run().await?;

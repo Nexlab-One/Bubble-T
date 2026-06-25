@@ -1,16 +1,16 @@
 use crate::color::TerminalColor;
-use crate::renderer::Renderer;
+use crate::output::OutputContext;
 use crate::security::safe_repeat;
 use crate::utils::{width as display_width, width_visible as visible_width};
 
-/// A whitespace renderer responsible for generating styled filler areas.
+/// A whitespace OutputContext responsible for generating styled filler areas.
 ///
 /// `Whitespace` allows you to create customizable whitespace with various styling options
 /// including foreground/background colors, underline, strikethrough, and custom characters.
 /// This is particularly useful for creating visual separators, padding, or decorative
 /// elements in terminal user interfaces.
 ///
-/// The renderer cycles through provided characters to fill the requested width,
+/// The OutputContext cycles through provided characters to fill the requested width,
 /// applying any configured styling through ANSI escape sequences.
 ///
 /// # Examples
@@ -18,10 +18,10 @@ use crate::utils::{width as display_width, width_visible as visible_width};
 /// Basic whitespace rendering:
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, Whitespace};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[]);
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[]);
 /// let result = ws.render(5);
 /// assert_eq!(result, "     ");
 /// ```
@@ -29,21 +29,21 @@ use crate::utils::{width as display_width, width_visible as visible_width};
 /// Whitespace with custom characters:
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_chars};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[with_whitespace_chars(".")]);
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[with_whitespace_chars(".")]);
 /// let result = ws.render(3);
 /// assert_eq!(result, "...");
 /// ```
 #[derive(Debug)]
 pub struct Whitespace {
-    re: Renderer,
+    re: OutputContext,
     style: String, // termenv.Style equivalent - will store ANSI codes
     chars: String,
 }
 
-/// Creates a new whitespace renderer with the specified options.
+/// Creates a new whitespace OutputContext with the specified options.
 ///
 /// This function constructs a `Whitespace` instance that can generate styled
 /// whitespace areas. Options are applied in order, so their sequence can matter
@@ -51,7 +51,7 @@ pub struct Whitespace {
 ///
 /// # Arguments
 ///
-/// * `r` - A reference to the `Renderer` that will handle color profiles and styling
+/// * `r` - A reference to the `OutputContext` that will handle color profiles and styling
 /// * `opts` - A slice of `WhitespaceOption` functions that configure the whitespace appearance
 ///
 /// # Returns
@@ -63,25 +63,25 @@ pub struct Whitespace {
 /// Creating basic whitespace:
 /// ```
 /// use lipgloss::whitespace::new_whitespace;
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[]);
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[]);
 /// ```
 ///
 /// Creating colored whitespace with custom characters:
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_chars, with_whitespace_foreground};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 /// use lipgloss::color::Color;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[
 ///     with_whitespace_chars("*"),
 ///     with_whitespace_foreground(Color("red".to_string())),
 /// ]);
 /// ```
-pub fn new_whitespace(r: &Renderer, opts: &[WhitespaceOption]) -> Whitespace {
+pub fn new_whitespace(r: &OutputContext, opts: &[WhitespaceOption]) -> Whitespace {
     let mut w = Whitespace {
         re: r.clone(),
         style: String::new(), // Start with empty style, will be built by options
@@ -119,10 +119,10 @@ impl Whitespace {
     /// Basic rendering:
     /// ```
     /// use lipgloss::whitespace::new_whitespace;
-    /// use lipgloss::renderer::Renderer;
+    /// use lipgloss::output::OutputContext;
     ///
-    /// let renderer = Renderer::new();
-    /// let ws = new_whitespace(&renderer, &[]);
+    /// let OutputContext = OutputContext::default();
+    /// let ws = new_whitespace(&OutputContext, &[]);
     /// let result = ws.render(5);
     /// assert_eq!(result, "     ");
     /// ```
@@ -130,10 +130,10 @@ impl Whitespace {
     /// Rendering with custom characters:
     /// ```
     /// use lipgloss::whitespace::{new_whitespace, with_whitespace_chars};
-    /// use lipgloss::renderer::Renderer;
+    /// use lipgloss::output::OutputContext;
     ///
-    /// let renderer = Renderer::new();
-    /// let ws = new_whitespace(&renderer, &[with_whitespace_chars("ab")]);
+    /// let OutputContext = OutputContext::default();
+    /// let ws = new_whitespace(&OutputContext, &[with_whitespace_chars("ab")]);
     /// let result = ws.render(5);
     /// assert_eq!(result, "ababa");
     /// ```
@@ -224,11 +224,11 @@ pub type WhitespaceOption = Box<dyn Fn(&mut Whitespace)>;
 ///
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_foreground};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 /// use lipgloss::color::Color;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[
 ///     with_whitespace_foreground(Color("red".to_string()))
 /// ]);
 /// let result = ws.render(3);
@@ -287,11 +287,11 @@ pub fn with_whitespace_foreground<C: TerminalColor + 'static>(c: C) -> Whitespac
 ///
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_background};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 /// use lipgloss::color::Color;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[
 ///     with_whitespace_background(Color("blue".to_string()))
 /// ]);
 /// let result = ws.render(3);
@@ -341,10 +341,10 @@ pub fn with_whitespace_background<C: TerminalColor + 'static>(c: C) -> Whitespac
 ///
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_underline, with_whitespace_chars};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[
 ///     with_whitespace_chars("─"),
 ///     with_whitespace_underline()
 /// ]);
@@ -376,10 +376,10 @@ pub fn with_whitespace_underline() -> WhitespaceOption {
 ///
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_strikethrough, with_whitespace_chars};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[
 ///     with_whitespace_chars("text"),
 ///     with_whitespace_strikethrough()
 /// ]);
@@ -418,10 +418,10 @@ pub fn with_whitespace_strikethrough() -> WhitespaceOption {
 /// Single character pattern:
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_chars};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[with_whitespace_chars(".")]);
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[with_whitespace_chars(".")]);
 /// let result = ws.render(5);
 /// assert_eq!(result, ".....");
 /// ```
@@ -429,10 +429,10 @@ pub fn with_whitespace_strikethrough() -> WhitespaceOption {
 /// Multi-character pattern:
 /// ```
 /// use lipgloss::whitespace::{new_whitespace, with_whitespace_chars};
-/// use lipgloss::renderer::Renderer;
+/// use lipgloss::output::OutputContext;
 ///
-/// let renderer = Renderer::new();
-/// let ws = new_whitespace(&renderer, &[with_whitespace_chars("ab")]);
+/// let OutputContext = OutputContext::default();
+/// let ws = new_whitespace(&OutputContext, &[with_whitespace_chars("ab")]);
 /// let result = ws.render(5);
 /// assert_eq!(result, "ababa");
 /// ```
@@ -447,30 +447,30 @@ pub fn with_whitespace_chars(s: &str) -> WhitespaceOption {
 mod tests {
     use super::*;
     use crate::color::Color;
-    use crate::renderer::{ColorProfileKind, Renderer};
+    use crate::output::{ColorProfileKind, OutputContext};
 
     #[test]
     fn test_whitespace_basic_render() {
-        let renderer = Renderer::new();
-        let ws = new_whitespace(&renderer, &[]);
+        let output_context = OutputContext::default();
+        let ws = new_whitespace(&output_context, &[]);
         let result = ws.render(5);
         assert_eq!(result, "     ");
     }
 
     #[test]
     fn test_whitespace_with_custom_chars() {
-        let renderer = Renderer::new();
-        let ws = new_whitespace(&renderer, &[with_whitespace_chars(".")]);
+        let output_context = OutputContext::default();
+        let ws = new_whitespace(&output_context, &[with_whitespace_chars(".")]);
         let result = ws.render(3);
         assert_eq!(result, "...");
     }
 
     #[test]
     fn test_whitespace_with_foreground_color() {
-        let mut renderer = Renderer::new();
-        renderer.set_color_profile(ColorProfileKind::ANSI256);
+        let mut output_context = OutputContext::default();
+        output_context.set_color_profile(ColorProfileKind::ANSI256);
         let color = Color("9".to_string());
-        let ws = new_whitespace(&renderer, &[with_whitespace_foreground(color)]);
+        let ws = new_whitespace(&output_context, &[with_whitespace_foreground(color)]);
         let result = ws.render(3);
         // Should include ANSI color codes and reset
         assert!(result.starts_with("\x1b[38;5;9m"));
@@ -480,8 +480,8 @@ mod tests {
 
     #[test]
     fn test_whitespace_matches_go_algorithm() {
-        let renderer = Renderer::new();
-        let ws = new_whitespace(&renderer, &[with_whitespace_chars("ab")]);
+        let output_context = OutputContext::default();
+        let ws = new_whitespace(&output_context, &[with_whitespace_chars("ab")]);
         // Should cycle through "ab" characters
         let result = ws.render(5);
         assert_eq!(result, "ababa");
@@ -490,16 +490,16 @@ mod tests {
     #[test]
     fn test_whitespace_struct_matches_go() {
         // Test that our struct fields match the Go implementation conceptually
-        let renderer = Renderer::new();
+        let output_context = OutputContext::default();
         let ws = new_whitespace(
-            &renderer,
+            &output_context,
             &[
                 with_whitespace_chars("*"),
                 with_whitespace_foreground(Color("1".to_string())),
             ],
         );
 
-        // Should have renderer reference (re field in Go)
+        // Should have OutputContext reference (re field in Go)
         // Should have style information (style field in Go)
         // Should have chars information (chars field in Go)
         let result = ws.render(2);
@@ -525,10 +525,10 @@ mod tests {
 
     #[test]
     fn test_whitespace_combined_fg_bg_builds_complete_sgr() {
-        let mut renderer = Renderer::new();
-        renderer.set_color_profile(ColorProfileKind::ANSI256);
+        let mut output_context = OutputContext::default();
+        output_context.set_color_profile(ColorProfileKind::ANSI256);
         let ws = new_whitespace(
-            &renderer,
+            &output_context,
             &[
                 with_whitespace_foreground(Color("1".to_string())),
                 with_whitespace_background(Color("2".to_string())),

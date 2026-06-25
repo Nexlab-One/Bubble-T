@@ -30,6 +30,11 @@ focus-reporting = []
 testing = []
 
 [dependencies]
+ansi = { workspace = true }
+cellbuf = { workspace = true }
+colorprofile = { workspace = true }
+term = { workspace = true }
+lipgloss = { workspace = true }
 crossterm = { workspace = true }
 tokio = { workspace = true, optional = true }
 thiserror = { workspace = true }
@@ -40,6 +45,10 @@ tokio-util = { workspace = true }
 pin-project = { workspace = true }
 parking_lot = { workspace = true }
 async-trait = { workspace = true }
+base64 = "0.22.1"
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }

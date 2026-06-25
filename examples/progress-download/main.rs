@@ -20,7 +20,9 @@
 //! Usage: cargo run -- --url https://example.com/file.zip
 
 use bubble_t::gradient::gradient_filled_segment;
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, batch, quit, sequence, tick};
+use bubble_t::{
+    Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, batch, quit, sequence, tick,
+};
 use clap::Parser;
 use futures_util::StreamExt;
 use lipgloss_extras::lipgloss::{Color, Style};
@@ -335,12 +337,12 @@ impl Model for ProgressDownloadModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         const PADDING: &str = "  "; // 2 spaces padding (matching Go)
 
         // Show error if there was one (matching Go format)
         if let Some(error) = &self.error {
-            return format!("Error downloading: {}\n", error);
+            return View::new(format!("Error downloading: {}\n", error));
         }
 
         // Style help text with gray color (matching Go's lipgloss style #626262)
@@ -348,13 +350,13 @@ impl Model for ProgressDownloadModel {
         let help_text = help_style.render("Press any key to quit");
 
         // Match Go's view format exactly
-        format!(
+        View::new(format!(
             "\n{}{}\n\n{}{}",
             PADDING,
             self.progress.view(),
             PADDING,
             help_text
-        )
+        ))
     }
 }
 

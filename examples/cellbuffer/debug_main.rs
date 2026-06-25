@@ -1,4 +1,4 @@
-use bubble_t::{quit, Cmd, KeyMsg, Model, Msg, Program};
+use bubble_t::{MouseMode, quit, Cmd, KeyMsg, Model, Msg, Program, View};
 use bubble_t::command::{batch, tick, window_size};
 use crossterm::event::MouseEventKind;
 use std::time::Duration;
@@ -108,7 +108,7 @@ impl Model for DebugModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut output = String::new();
         
         // Status info
@@ -141,8 +141,11 @@ impl Model for DebugModel {
             output.push_str(&format!("  {}\n", msg));
         }
         
-        output
-    }
+        let mut view = View::new(output);
+        view.alt_screen = true;
+        view.mouse_mode = MouseMode::AllMotion;
+        view
+}
 }
 
 #[tokio::main]
@@ -150,8 +153,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use bubble_t::MouseMotion;
     
     let program = Program::<DebugModel>::builder()
-        .alt_screen(false)
-        .mouse_motion(MouseMotion::Cell)
         .signal_handler(true)
         .build()?;
 

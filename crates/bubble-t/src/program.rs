@@ -3,41 +3,38 @@
 //! The `Program` sets up the terminal, handles input, executes commands, and renders
 //! the model's view.
 
-use crate::event::{KillMsg, RequestWindowSizeMsg};
+use crate::event::{
+    CapabilityMsg, ColorProfileMsg, EnvMsg, KillMsg, RawCmdMsg, ReadClipboardCmdMsg,
+    ReadPrimaryClipboardCmdMsg, RequestBackgroundColorCmdMsg, RequestCapabilityCmdMsg,
+    RequestCursorColorCmdMsg, RequestCursorPositionCmdMsg, RequestForegroundColorCmdMsg,
+    RequestTerminalVersionCmdMsg, RequestWindowSizeMsg, SetClipboardCmdMsg,
+    SetPrimaryClipboardCmdMsg,
+};
+use crate::renderer::CursedRenderer;
+use crate::signals::{self, SUSPEND_SUPPORTED};
+use crate::view::AppliedViewState;
+use crate::view_runtime::{apply_view, render_options_from_view};
 use crate::{
-    Error, InputHandler, InputSource, Model, Msg, QuitMsg, Terminal, TerminalInterface,
+    Error, InputHandler, InputSource, Model, MouseMsg, Msg, QuitMsg, Terminal, TerminalInterface,
     WindowSizeMsg,
 };
+use colorprofile::Profile;
 use futures::{future::FutureExt, select};
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::panic;
+use std::sync::Arc;
 use std::sync::OnceLock;
+use tokio::io::AsyncWrite;
+use tokio::sync::Mutex;
 use tokio::sync::mpsc;
+use tokio::task::JoinSet;
+use tokio_util::sync::CancellationToken;
 
 type PanicHook = Box<dyn Fn(&panic::PanicHookInfo<'_>) + Send + Sync + 'static>;
 static ORIGINAL_PANIC_HOOK: OnceLock<PanicHook> = OnceLock::new();
 
-/// Defines the different modes for mouse motion reporting.
-#[derive(Debug, Clone, Copy)]
-pub enum MouseMotion {
-    /// No mouse motion events are reported.
-    None,
-    /// Mouse motion events are reported when the mouse moves over a different cell.
-    Cell,
-    /// Mouse motion events are reported for every pixel movement.
-    All,
-}
-
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::io::AsyncWrite;
-use tokio::sync::Mutex;
-use tokio::task::JoinSet;
-use tokio_util::sync::CancellationToken;
-
 /// Alias for a model-aware message filter function used throughout Program.
-///
-/// This reduces repeated complex type signatures and improves readability.
 type MessageFilter<M> = Box<dyn Fn(&M, Msg) -> Option<Msg> + Send>;
 
 /// Configuration options for a `Program`.
@@ -45,12 +42,6 @@ type MessageFilter<M> = Box<dyn Fn(&M, Msg) -> Option<Msg> + Send>;
 /// This struct holds various settings that control the behavior of the `Program`,
 /// such as terminal features, rendering options, and panic/signal handling.
 pub struct ProgramConfig {
-    /// Whether to use the alternate screen buffer.
-    pub alt_screen: bool,
-    /// The mouse motion reporting mode.
-    pub mouse_motion: MouseMotion,
-    /// Whether to report focus events.
-    pub report_focus: bool,
     /// The target frames per second for rendering.
     pub fps: u32,
     /// Whether to disable the renderer entirely.
@@ -59,13 +50,10 @@ pub struct ProgramConfig {
     pub catch_panics: bool,
     /// Whether to enable signal handling (e.g., Ctrl+C).
     pub signal_handler: bool,
-    /// Whether to enable bracketed paste mode.
-    pub bracketed_paste: bool,
     /// Optional custom output writer.
     pub output_writer: Option<Arc<Mutex<dyn AsyncWrite + Send + Unpin>>>,
     /// Optional cancellation token for external control.
     pub cancellation_token: Option<CancellationToken>,
-    // Message filter is model-aware and stored on Program<M> instead of in ProgramConfig
     /// Optional custom input source.
     pub input_source: Option<InputSource>,
     /// The buffer size for the event channel (None for unbounded, Some(size) for bounded).
@@ -74,21 +62,23 @@ pub struct ProgramConfig {
     pub memory_monitoring: bool,
     /// Optional environment variables to apply to external process commands.
     pub environment: Option<HashMap<String, String>>,
+    /// Optional fixed color profile (auto-detected when unset).
+    pub color_profile: Option<Profile>,
+    /// Optional fixed window size for the renderer (queried from the terminal when unset).
+    pub window_size: Option<(u16, u16)>,
 }
 
 impl std::fmt::Debug for ProgramConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ProgramConfig")
-            .field("alt_screen", &self.alt_screen)
-            .field("mouse_motion", &self.mouse_motion)
-            .field("report_focus", &self.report_focus)
             .field("fps", &self.fps)
             .field("without_renderer", &self.without_renderer)
             .field("catch_panics", &self.catch_panics)
             .field("signal_handler", &self.signal_handler)
-            .field("bracketed_paste", &self.bracketed_paste)
             .field("cancellation_token", &self.cancellation_token)
             .field("environment", &self.environment.as_ref().map(|m| m.len()))
+            .field("color_profile", &self.color_profile)
+            .field("window_size", &self.window_size)
             .finish()
     }
 }
@@ -101,20 +91,18 @@ impl Default for ProgramConfig {
     /// catches panics, handles signals, and disables bracketed paste.
     fn default() -> Self {
         Self {
-            alt_screen: false,
-            mouse_motion: MouseMotion::None,
-            report_focus: false,
             fps: 60,
             without_renderer: false,
             catch_panics: true,
             signal_handler: true,
-            bracketed_paste: false,
             output_writer: None,
             cancellation_token: None,
             input_source: None,
-            event_channel_buffer: Some(1000), // Default to bounded channel with 1000 message buffer
-            memory_monitoring: false,         // Disabled by default
+            event_channel_buffer: Some(1000),
+            memory_monitoring: false,
             environment: None,
+            color_profile: None,
+            window_size: None,
         }
     }
 }
@@ -167,7 +155,7 @@ impl<M: Model> ProgramBuilder<M> {
     /// # impl Model for MyModel {
     /// #     fn init() -> (Self, Option<bubble_t::Cmd>) { (MyModel, None) }
     /// #     fn update(&mut self, _: bubble_t::Msg) -> Option<bubble_t::Cmd> { None }
-    /// #     fn view(&self) -> String { String::new() }
+    /// #     fn view(&self) -> bubble_t::View { bubble_t::View::new("") }
     /// # }
     ///
     /// let mut env = HashMap::new();
@@ -182,31 +170,15 @@ impl<M: Model> ProgramBuilder<M> {
         self
     }
 
-    /// Sets whether to use the alternate screen buffer.
-    ///
-    /// When enabled, the application will run in an alternate screen buffer,
-    /// preserving the main terminal content.
-    pub fn alt_screen(mut self, enabled: bool) -> Self {
-        self.config.alt_screen = enabled;
+    /// Sets an explicit terminal color profile for renderer output downsampling.
+    pub fn with_color_profile(mut self, profile: Profile) -> Self {
+        self.config.color_profile = Some(profile);
         self
     }
 
-    /// Sets the mouse motion reporting mode.
-    ///
-    /// # Arguments
-    ///
-    /// * `motion` - The desired `MouseMotion` mode.
-    pub fn mouse_motion(mut self, motion: MouseMotion) -> Self {
-        self.config.mouse_motion = motion;
-        self
-    }
-
-    /// Sets whether to report focus events.
-    ///
-    /// When enabled, the application will receive `FocusMsg` and `BlurMsg`
-    /// when the terminal gains or loses focus.
-    pub fn report_focus(mut self, enabled: bool) -> Self {
-        self.config.report_focus = enabled;
+    /// Sets a fixed renderer window size instead of querying the terminal each frame.
+    pub fn with_window_size(mut self, width: u16, height: u16) -> Self {
+        self.config.window_size = Some((width, height));
         self
     }
 
@@ -251,16 +223,7 @@ impl<M: Model> ProgramBuilder<M> {
         self
     }
 
-    /// Sets whether to enable bracketed paste mode.
-    ///
-    /// When enabled, pasted text will be wrapped in special escape sequences,
-    /// allowing the application to distinguish pasted input from typed input.
-    pub fn bracketed_paste(mut self, enabled: bool) -> Self {
-        self.config.bracketed_paste = enabled;
-        self
-    }
-
-    /// Configures the program to use the default terminal input (stdin).
+    /// Disables the renderer.
     ///
     /// This is the default behavior, so calling this method is optional.
     /// It's provided for explicit configuration when needed.
@@ -371,6 +334,10 @@ pub struct Program<M: Model> {
     memory_monitor: Option<crate::memory::MemoryMonitor>,
     /// Optional model-aware message filter
     message_filter: Option<MessageFilter<M>>,
+    applied_view: AppliedViewState,
+    renderer: Option<CursedRenderer>,
+    color_profile: Profile,
+    on_mouse: Option<crate::view::OnMouseFn>,
     _phantom: PhantomData<M>,
 }
 
@@ -435,6 +402,21 @@ impl<M: Model> Program<M> {
             None
         };
 
+        let profile = config
+            .color_profile
+            .unwrap_or_else(|| colorprofile::detect(term::is_stdout_terminal(), &[]));
+
+        let (width, height) = config.window_size.unwrap_or((80, 24));
+        let renderer = if config.without_renderer {
+            None
+        } else {
+            Some(CursedRenderer::new(
+                usize::from(width),
+                usize::from(height),
+                profile,
+            ))
+        };
+
         Ok(Self {
             config,
             event_tx,
@@ -445,8 +427,202 @@ impl<M: Model> Program<M> {
             shutdown_token: CancellationToken::new(),
             memory_monitor,
             message_filter,
+            applied_view: AppliedViewState::default(),
+            renderer,
+            color_profile: profile,
+            on_mouse: None,
             _phantom: PhantomData,
         })
+    }
+
+    async fn send_startup_messages(&self) -> Result<(), Error> {
+        let _ = self
+            .event_tx
+            .send(Box::new(ColorProfileMsg(self.color_profile)) as Msg);
+        let mut env_map: HashMap<String, String> = std::env::vars().collect();
+        if let Some(custom) = &self.config.environment {
+            env_map.extend(custom.clone());
+        }
+        let _ = self.event_tx.send(Box::new(EnvMsg(env_map)) as Msg);
+        Ok(())
+    }
+
+    async fn enable_renderer_modes(&mut self) -> Result<(), Error> {
+        if let Some(renderer) = &mut self.renderer {
+            renderer.set_sync_output(true);
+            renderer.set_unicode_mode(true);
+            if let Some(terminal) = &mut self.terminal {
+                let seq = renderer.startup_mode_sequences();
+                if !seq.is_empty() {
+                    terminal.write_raw(seq.as_bytes()).await?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn is_terminal_command(msg: &Msg) -> bool {
+        msg.is::<RawCmdMsg>()
+            || msg.is::<RequestCursorPositionCmdMsg>()
+            || msg.is::<RequestForegroundColorCmdMsg>()
+            || msg.is::<RequestBackgroundColorCmdMsg>()
+            || msg.is::<RequestCursorColorCmdMsg>()
+            || msg.is::<RequestTerminalVersionCmdMsg>()
+            || msg.is::<RequestCapabilityCmdMsg>()
+            || msg.is::<SetClipboardCmdMsg>()
+            || msg.is::<ReadClipboardCmdMsg>()
+            || msg.is::<SetPrimaryClipboardCmdMsg>()
+            || msg.is::<ReadPrimaryClipboardCmdMsg>()
+    }
+
+    async fn handle_terminal_command(&mut self, msg: Msg) -> Result<(), Error> {
+        use ansi::background::{
+            REQUEST_BACKGROUND_COLOR, REQUEST_CURSOR_COLOR, REQUEST_FOREGROUND_COLOR,
+        };
+        use ansi::clipboard::{
+            REQUEST_PRIMARY_CLIPBOARD, REQUEST_SYSTEM_CLIPBOARD, set_primary_clipboard,
+            set_system_clipboard,
+        };
+        use ansi::ctrl::{REQUEST_NAME_VERSION, request_termcap};
+        use ansi::cursor::REQUEST_CURSOR_POSITION_REPORT;
+
+        let Some(terminal) = &mut self.terminal else {
+            return Ok(());
+        };
+
+        if msg.is::<RawCmdMsg>() {
+            let raw = msg.downcast::<RawCmdMsg>().expect("checked RawCmdMsg");
+            terminal.write_raw(raw.0.as_bytes()).await?;
+        } else if msg.is::<RequestCursorPositionCmdMsg>() {
+            terminal
+                .write_raw(REQUEST_CURSOR_POSITION_REPORT.as_bytes())
+                .await?;
+        } else if msg.is::<RequestForegroundColorCmdMsg>() {
+            terminal
+                .write_raw(REQUEST_FOREGROUND_COLOR.as_bytes())
+                .await?;
+        } else if msg.is::<RequestBackgroundColorCmdMsg>() {
+            terminal
+                .write_raw(REQUEST_BACKGROUND_COLOR.as_bytes())
+                .await?;
+        } else if msg.is::<RequestCursorColorCmdMsg>() {
+            terminal.write_raw(REQUEST_CURSOR_COLOR.as_bytes()).await?;
+        } else if msg.is::<RequestTerminalVersionCmdMsg>() {
+            terminal.write_raw(REQUEST_NAME_VERSION.as_bytes()).await?;
+        } else if msg.is::<RequestCapabilityCmdMsg>() {
+            let cap = msg
+                .downcast::<RequestCapabilityCmdMsg>()
+                .expect("checked RequestCapabilityCmdMsg");
+            let seq = request_termcap(&[&cap.0]);
+            terminal.write_raw(seq.as_bytes()).await?;
+        } else if msg.is::<SetClipboardCmdMsg>() {
+            let set = msg
+                .downcast::<SetClipboardCmdMsg>()
+                .expect("checked SetClipboardCmdMsg");
+            let seq = set_system_clipboard(&set.0);
+            terminal.write_raw(seq.as_bytes()).await?;
+        } else if msg.is::<ReadClipboardCmdMsg>() {
+            terminal
+                .write_raw(REQUEST_SYSTEM_CLIPBOARD.as_bytes())
+                .await?;
+        } else if msg.is::<SetPrimaryClipboardCmdMsg>() {
+            let set = msg
+                .downcast::<SetPrimaryClipboardCmdMsg>()
+                .expect("checked SetPrimaryClipboardCmdMsg");
+            let seq = set_primary_clipboard(&set.0);
+            terminal.write_raw(seq.as_bytes()).await?;
+        } else if msg.is::<ReadPrimaryClipboardCmdMsg>() {
+            terminal
+                .write_raw(REQUEST_PRIMARY_CLIPBOARD.as_bytes())
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    fn maybe_upgrade_profile(&mut self, cap: &CapabilityMsg) {
+        if self.color_profile == Profile::TrueColor {
+            return;
+        }
+        if cap.content == "RGB" || cap.content == "Tc" {
+            self.color_profile = Profile::TrueColor;
+            if let Some(renderer) = &mut self.renderer {
+                renderer.set_profile(Profile::TrueColor);
+            }
+            let _ = self
+                .event_tx
+                .send(Box::new(ColorProfileMsg(Profile::TrueColor)) as Msg);
+        }
+    }
+
+    async fn render_frame(&mut self, model: &M) -> Result<(), Error> {
+        let view = model.view();
+        let next_state = AppliedViewState::from_view(&view);
+        let options = render_options_from_view(&view);
+        self.on_mouse = view
+            .on_mouse
+            .or_else(|| crate::view::View::mouse_handler(view.compositor.clone(), None));
+        let content = if view.content.is_empty() {
+            view.compositor
+                .as_ref()
+                .map(lipgloss::Compositor::render)
+                .unwrap_or_default()
+        } else {
+            view.content
+        };
+        if self.config.without_renderer {
+            return Ok(());
+        }
+        if let (Some(terminal), Some(renderer)) = (&mut self.terminal, &mut self.renderer) {
+            if let Some((width, height)) = self.config.window_size.or_else(|| terminal.size().ok())
+            {
+                renderer.resize(usize::from(width), usize::from(height));
+            }
+            apply_view(terminal.as_mut(), &mut self.applied_view, next_state).await?;
+            let output = renderer.render(&content, &options);
+            terminal.write_raw(output.as_bytes()).await?;
+        }
+        Ok(())
+    }
+
+    async fn restore_applied_terminal_state(&mut self) -> Result<(), Error> {
+        if let (Some(terminal), Some(renderer)) = (&mut self.terminal, &mut self.renderer) {
+            let seq = renderer.shutdown_mode_sequences();
+            if !seq.is_empty() {
+                let _ = terminal.write_raw(seq.as_bytes()).await;
+            }
+        }
+        if let Some(terminal) = &mut self.terminal {
+            let _ = terminal.show_cursor().await;
+            if self.applied_view.mouse_mode != crate::view::MouseMode::None {
+                let _ = terminal.disable_mouse().await;
+            }
+            if self.applied_view.report_focus {
+                let _ = terminal.disable_focus_reporting().await;
+            }
+            if self.applied_view.bracketed_paste {
+                let _ = terminal.disable_bracketed_paste().await;
+            }
+            if self.applied_view.alt_screen {
+                let _ = terminal.exit_alt_screen().await;
+            }
+            let _ = terminal.exit_raw_mode().await;
+        }
+        Ok(())
+    }
+
+    async fn suspend_and_resume(&mut self, model: &M) -> Result<(), Error> {
+        self.restore_applied_terminal_state().await?;
+        tokio::task::spawn_blocking(signals::suspend_process)
+            .await
+            .map_err(|_| Error::Io(std::io::Error::other("suspend task failed")))?;
+        if let Some(terminal) = &mut self.terminal {
+            terminal.enter_raw_mode().await?;
+        }
+        self.enable_renderer_modes().await?;
+        let _ = self.event_tx.send(Box::new(crate::ResumeMsg) as Msg);
+        self.render_frame(model).await?;
+        Ok(())
     }
 
     /// Runs the `bubble-t` application.
@@ -454,11 +630,6 @@ impl<M: Model> Program<M> {
     /// This method initializes the terminal, starts the event loop, and manages
     /// the application's lifecycle. It will continue to run until a `QuitMsg`
     /// is received or an unrecoverable error occurs.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing the final `Model` state or an `Error` if the program
-    /// terminates abnormally.
     pub async fn run(mut self) -> Result<M, Error> {
         // Set up panic hook
         if self.config.catch_panics {
@@ -482,27 +653,20 @@ impl<M: Model> Program<M> {
             }));
         }
 
-        // Setup terminal
+        // Setup terminal — declarative View fields are applied on each render frame.
         if let Some(terminal) = &mut self.terminal {
             terminal.enter_raw_mode().await?;
-            if self.config.alt_screen {
-                terminal.enter_alt_screen().await?;
-            }
-            match self.config.mouse_motion {
-                MouseMotion::Cell => terminal.enable_mouse_cell_motion().await?,
-                MouseMotion::All => terminal.enable_mouse_all_motion().await?,
-                MouseMotion::None => (),
-            }
-            if self.config.report_focus {
-                terminal.enable_focus_reporting().await?;
-            }
-            if self.config.bracketed_paste {
-                terminal.enable_bracketed_paste().await?;
-            }
-            terminal.hide_cursor().await?;
         }
+        self.enable_renderer_modes().await?;
+        self.send_startup_messages().await?;
+
+        let _signal_task =
+            signals::spawn_interrupt_listener(self.event_tx.clone(), self.config.signal_handler);
+        let _resize_task =
+            signals::spawn_resize_listener(self.event_tx.clone(), self.config.signal_handler);
 
         let (mut model, mut cmd) = M::init();
+        self.render_frame(&model).await?;
 
         // Setup input handling - either terminal input or custom input source
         if self.terminal.is_some() || self.config.input_source.is_some() {
@@ -586,16 +750,6 @@ impl<M: Model> Program<M> {
                                 let _ = terminal.clear().await;
                             }
                             continue; // handled; don't pass to the model
-                        } else if msg.is::<crate::event::EnterAltScreenMsg>() {
-                            if let Some(terminal) = &mut self.terminal {
-                                let _ = terminal.enter_alt_screen().await;
-                            }
-                            // Intentionally do not continue; allow render below to redraw view
-                        } else if msg.is::<crate::event::ExitAltScreenMsg>() {
-                            if let Some(terminal) = &mut self.terminal {
-                                let _ = terminal.exit_alt_screen().await;
-                            }
-                            // Intentionally do not continue; allow render below to redraw view
                         } else if msg.is::<crate::event::EveryMsgInternal>() {
                             // We need to consume the message to get ownership of the function
                             if let Ok(every_msg) = msg.downcast::<crate::event::EveryMsgInternal>() {
@@ -716,11 +870,36 @@ impl<M: Model> Program<M> {
                                     .send(Box::new(WindowSizeMsg { width, height }) as Msg);
                             }
                             continue;
+                        } else if msg.is::<crate::SuspendMsg>() {
+                            if SUSPEND_SUPPORTED {
+                                self.suspend_and_resume(&model).await?;
+                            }
+                            continue;
+                        } else if Self::is_terminal_command(&msg) {
+                            self.handle_terminal_command(msg).await?;
+                            continue;
                         } else {
                             // Handle regular messages
+                            if let Some(cap) = msg.downcast_ref::<CapabilityMsg>() {
+                                self.maybe_upgrade_profile(cap);
+                            }
                             let is_quit = msg.downcast_ref::<QuitMsg>().is_some();
                             let is_interrupt = msg.downcast_ref::<crate::InterruptMsg>().is_some();
-                            cmd = model.update(msg);
+                            let mouse_cmd = msg
+                                .downcast_ref::<MouseMsg>()
+                                .and_then(|mouse| {
+                                    self.on_mouse
+                                        .as_ref()
+                                        .and_then(|handler| handler(mouse.clone()))
+                                });
+                            let update_cmd = model.update(msg);
+                            cmd = match (mouse_cmd, update_cmd) {
+                                (Some(a), Some(b)) => {
+                                    Some(crate::command::batch(vec![a, b]))
+                                }
+                                (Some(a), None) => Some(a),
+                                (None, b) => b,
+                            };
                             if is_quit {
                                 should_quit = true;
                             }
@@ -739,36 +918,16 @@ impl<M: Model> Program<M> {
                         if should_interrupt {
                             break Err(Error::Interrupted);
                         }
-                        if let Some(terminal) = &mut self.terminal {
-                            let view = model.view();
-                            terminal.render(&view).await?;
-                        }
+                        self.render_frame(&model).await?;
                     } else {
                         break Err(Error::ChannelReceive);
                     }
-                }
-                _ = async {
-                    if self.config.signal_handler {
-                        tokio::signal::ctrl_c().await.ok();
-                    } else {
-                        futures::future::pending::<()>().await;
-                    }
-                }.fuse() => {
-                    let _ = self.event_tx.send(Box::new(crate::InterruptMsg));
                 }
             }
         };
 
         // Restore terminal state on exit
-        if let Some(terminal) = &mut self.terminal {
-            let _ = terminal.show_cursor().await;
-            let _ = terminal.disable_mouse().await;
-            let _ = terminal.disable_focus_reporting().await;
-            if self.config.alt_screen {
-                let _ = terminal.exit_alt_screen().await;
-            }
-            let _ = terminal.exit_raw_mode().await;
-        }
+        let _ = self.restore_applied_terminal_state().await;
 
         // Cleanup: cancel all tasks and wait for them to complete
         self.cleanup_tasks().await;
@@ -847,7 +1006,7 @@ impl<M: Model> Program<M> {
     /// # impl Model for MyModel {
     /// #     fn init() -> (Self, Option<bubble_t::Cmd>) { (MyModel, None) }
     /// #     fn update(&mut self, _: bubble_t::Msg) -> Option<bubble_t::Cmd> { None }
-    /// #     fn view(&self) -> String { String::new() }
+    /// #     fn view(&self) -> bubble_t::View { bubble_t::View::new("") }
     /// # }
     /// # async fn example() -> Result<(), bubble_t::Error> {
     /// let program = Program::<MyModel>::builder().build()?;
@@ -876,7 +1035,7 @@ impl<M: Model> Program<M> {
     /// # impl Model for MyModel {
     /// #     fn init() -> (Self, Option<bubble_t::Cmd>) { (MyModel, None) }
     /// #     fn update(&mut self, _: bubble_t::Msg) -> Option<bubble_t::Cmd> { None }
-    /// #     fn view(&self) -> String { String::new() }
+    /// #     fn view(&self) -> bubble_t::View { bubble_t::View::new("") }
     /// # }
     /// # async fn example() -> Result<(), bubble_t::Error> {
     /// let program = Program::<MyModel>::builder().build()?;
@@ -954,21 +1113,6 @@ impl<M: Model> Program<M> {
     pub async fn restore_terminal(&mut self) -> Result<(), Error> {
         if let Some(terminal) = &mut self.terminal {
             terminal.enter_raw_mode().await?;
-            if self.config.alt_screen {
-                terminal.enter_alt_screen().await?;
-            }
-            match self.config.mouse_motion {
-                MouseMotion::Cell => terminal.enable_mouse_cell_motion().await?,
-                MouseMotion::All => terminal.enable_mouse_all_motion().await?,
-                MouseMotion::None => (),
-            }
-            if self.config.report_focus {
-                terminal.enable_focus_reporting().await?;
-            }
-            if self.config.bracketed_paste {
-                terminal.enable_bracketed_paste().await?;
-            }
-            terminal.hide_cursor().await?;
         }
         Ok(())
     }

@@ -10,7 +10,7 @@
 //! model's state we know that the debouncing is complete and we can proceed as
 //! normal. If not, we simply ignore the inbound message.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit, tick};
 use std::time::Duration;
 
 /// Duration to wait for debouncing
@@ -74,11 +74,11 @@ impl Model for DebounceModel {
         None
     }
 
-    fn view(&self) -> String {
-        format!(
+    fn view(&self) -> View {
+        View::new(format!(
             "Key presses: {}\nTo exit press any key, then wait for one second without pressing anything.",
             self.tag
-        )
+        ))
     }
 }
 
@@ -87,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create and run the program with default settings
     let program = Program::<DebounceModel>::builder()
         .signal_handler(true) // Enable Ctrl+C handling
-        .alt_screen(false) // Match Go version - no alternate screen
+        // Match Go version - no alternate screen
         .build()?;
 
     program.run().await?;

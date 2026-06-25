@@ -13,7 +13,7 @@
 //! take over the entire terminal (like editors, games, or full-screen interfaces)
 //! without affecting the user's existing terminal content.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit, tick};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use std::time::Duration;
 
@@ -90,24 +90,24 @@ impl Model for FullscreenModel {
         None
     }
 
-    fn view(&self) -> String {
-        // Simple view showing the countdown with some padding for center alignment
-        format!(
+    fn view(&self) -> View {
+        let mut view = View::new(format!(
             "\n\n     Hi. This program will exit in {} seconds...",
             self.count
-        )
+        ));
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create and run the program with alternate screen buffer enabled
-    // The .alt_screen(true) setting is the key feature being demonstrated:
-    // - It switches to the alternate screen buffer on startup
+    // Create and run the program with alternate screen buffer enabled.
+    // `View::alt_screen` switches to the alternate screen buffer on startup.
     // - The application takes over the full terminal screen
     // - When the program exits, the original terminal content is restored
     let program = Program::<FullscreenModel>::builder()
-        .alt_screen(true) // Enable alternate screen buffer (fullscreen mode)
+        // Enable alternate screen buffer (fullscreen mode)
         .build()?;
 
     // Run the program - this will switch to fullscreen mode and start the countdown

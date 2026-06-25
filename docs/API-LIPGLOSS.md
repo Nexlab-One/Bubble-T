@@ -6,7 +6,7 @@ Terminal styling framework (`crates/lipgloss` and siblings), porting [charmbrace
 
 | Crate | Role |
 |-------|------|
-| `lipgloss` | Core `Style`, colors, layout, whitespace |
+| `lipgloss` | Core `Style`, colors, layout, compositing, `OutputContext` |
 | `lipgloss-list` | Styled vertical lists |
 | `lipgloss-table` | Styled tables |
 | `lipgloss-tree` | Tree diagrams |
@@ -36,8 +36,45 @@ let title = Style::new()
 title.render("Hello")
 ```
 
-Common methods: `foreground`, `background`, `bold`, `italic`, `underline`, `width`, `height`, `align`, `border`, `margin`, `padding`, `render`.
+Common methods: `foreground`, `background`, `bold`, `italic`, `underline`, `hyperlink`, `width`, `height`, `align`, `border`, `margin`, `padding`, `render`.
 
+### `OutputContext` (v2)
+
+Preferred path for color profile detection and downsampling:
+
+```rust
+use lipgloss::OutputContext;
+
+let ctx = OutputContext::from_env();
+let downsampled = ctx.downsample(&styled);
+```
+
+The legacy `Renderer` type remains as a thin compatibility wrapper; new code should use `OutputContext`.
+
+### Compositing (v2)
+
+Layer trees over `cellbuf` with z-order blending:
+
+```rust
+use lipgloss::{Canvas, Compositor, Layer};
+
+let comp = Compositor::new(vec![
+    Layer::new("background", vec![]).id("bg").z(0),
+    Layer::new("panel", vec![]).id("panel").x(2).y(1).z(1),
+]);
+let hit = comp.hit(2, 1); // top-most layer id at (x, y)
+let mut canvas = Canvas::new(40, 10);
+canvas.compose(&comp);
+println!("{}", canvas.render());
+```
+
+### Blending
+
+```rust
+use lipgloss::{Blend1D, Blend2D, blend_border, Color};
+
+let gradient = Blend1D(5, vec![Color::from("#f00"), Color::from("#00f")]);
+```
 ### `Color`
 
 Supports hex (`#RRGGBB`), ANSI indices, and adaptive colors. Color conversion uses perceptual distance (CIE L\*a\*b\*) for ANSI palette matching, matching Go termenv behavior.
@@ -66,7 +103,7 @@ Column headers, row styling, width constraints. See `examples/table` for bubble-
 
 ### Trees (`lipgloss-tree`)
 
-Hierarchical ASCII/Unicode tree rendering with customizable branch characters.
+Hierarchical ASCII/Unicode tree rendering with customizable branch characters, optional `width()`, and `indenter_style()`.
 
 ## Prelude
 
@@ -93,4 +130,4 @@ Re-exports lipgloss types; with `full` feature, also exports list/table/tree bui
 
 ## Color profiles
 
-Styles respect terminal color capability (truecolor vs ANSI). Use `AdaptiveColor` for light/dark terminal variants where supported.
+Styles respect terminal color capability via `OutputContext` / `colorprofile`. Use `AdaptiveColor` / `CompleteColor` for light/dark variants.

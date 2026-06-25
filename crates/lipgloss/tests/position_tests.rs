@@ -1,11 +1,11 @@
+use lipgloss::output::OutputContext;
 use lipgloss::position::{
     BOTTOM, CENTER, LEFT, Position, RIGHT, TOP, place_horizontal, place_vertical,
 };
-use lipgloss::renderer::Renderer;
 
-/// Create a renderer for testing (matches Go's blackhole struct functionality)
-fn blackhole_renderer() -> Renderer {
-    Renderer::new()
+/// Create a OutputContext for testing (matches Go's blackhole struct functionality)
+fn blackhole_renderer() -> OutputContext {
+    OutputContext::default()
 }
 
 #[test]
@@ -24,8 +24,8 @@ fn test_place_horizontal() {
     ];
 
     for (i, (width, text, pos, expected)) in test_cases.iter().enumerate() {
-        let renderer = blackhole_renderer();
-        let actual = renderer.place_horizontal(*width, *pos, text, &[]);
+        let output_context = blackhole_renderer();
+        let actual = output_context.place_horizontal(*width, *pos, text, &[]);
         assert_eq!(
             actual, *expected,
             "Test {}: expected {:?}, got {:?}",
@@ -49,8 +49,8 @@ fn test_place_vertical() {
     ];
 
     for (i, (height, content, position, expected)) in test_cases.iter().enumerate() {
-        let renderer = blackhole_renderer();
-        let actual = renderer.place_vertical(*height, *position, content, &[]);
+        let output_context = blackhole_renderer();
+        let actual = output_context.place_vertical(*height, *position, content, &[]);
         assert_eq!(
             actual, *expected,
             "Test {}: expected {:?}, got {:?}",
@@ -61,7 +61,7 @@ fn test_place_vertical() {
 
 #[test]
 fn test_place_horizontal_global_functions() {
-    // Test the global functions work the same as renderer methods
+    // Test the global functions work the same as OutputContext methods
     let test_cases = vec![
         (10, "Hello", LEFT, "Hello     "),
         (10, "Hello", CENTER, "  Hello   "),
@@ -76,7 +76,7 @@ fn test_place_horizontal_global_functions() {
 
 #[test]
 fn test_place_vertical_global_functions() {
-    // Test the global functions work the same as renderer methods
+    // Test the global functions work the same as OutputContext methods
     let test_cases = vec![
         (3, "Hello", TOP, "Hello\n     \n     "),
         (4, "Hello", CENTER, "     \nHello\n     \n     "),

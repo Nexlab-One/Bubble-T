@@ -23,7 +23,7 @@
 //! assert!(!view.is_empty());
 //! ```
 
-use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, tick};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, tick};
 use lipgloss_extras::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
@@ -238,8 +238,8 @@ impl BubbleTeaModel for Model {
         self.update(&msg)
     }
 
-    fn view(&self) -> String {
-        self.view()
+    fn view(&self) -> View {
+        View::new(self.view())
     }
 }
 

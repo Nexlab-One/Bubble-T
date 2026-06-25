@@ -1,4 +1,4 @@
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use bubble_t_widgets::{textinput, viewport};
 use lipgloss_extras::lipgloss::{Color, Style};
@@ -151,8 +151,15 @@ impl Model for ChatModel {
         self.textinput.update(msg)
     }
 
-    fn view(&self) -> String {
-        format!("{}{}{}", self.viewport.view(), GAP, self.textinput.view())
+    fn view(&self) -> View {
+        let mut view = View::new(format!(
+            "{}{}{}",
+            self.viewport.view().content,
+            GAP,
+            self.textinput.view()
+        ));
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -232,7 +239,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<ChatModel>::builder()
         // The Go example doesn't specify it, but Bubble Tea uses alt screen by default.
         // We enable it here for a cleaner UI.
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

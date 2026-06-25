@@ -17,7 +17,7 @@
 //! widget code. See this example's README “Troubleshooting” for details.
 
 use bubble_t::command::batch;
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::{help, key, textinput};
 use lipgloss_extras::lipgloss::{Color, Style};
 use reqwest::header::{ACCEPT, HeaderMap, HeaderValue};
@@ -160,9 +160,9 @@ impl Model for AutocompleteModel {
         text_input_result
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
-            return String::from("");
+            return View::new("");
         }
 
         let mut result = format!("Pick a Charm™ repo:\n\n  {}", self.text_input.view());
@@ -193,7 +193,9 @@ impl Model for AutocompleteModel {
         }
 
         result.push_str(&format!("\n\n{}\n\n", self.help.view(&self.keymap)));
-        result
+        let mut view = View::new(result);
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -233,7 +235,6 @@ fn fetch_repos() -> Cmd {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<AutocompleteModel>::builder()
         .signal_handler(true)
-        .alt_screen(true)
         .build()?;
 
     program.run().await?;

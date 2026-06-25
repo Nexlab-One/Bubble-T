@@ -1,0 +1,8 @@
+[package]
+name = "harmonica"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Physics-based spring animation. Rust port of charmbracelet/harmonica."

@@ -8,7 +8,7 @@
 //
 // This approach is more idiomatic in Rust and provides the same user experience.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
 use bubble_t_widgets::key::{
     Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
@@ -166,7 +166,7 @@ impl Model for AppModel {
         }
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
             if self.has_changes {
                 let text = join_horizontal(
@@ -176,9 +176,9 @@ impl Model for AppModel {
                         &choice_style().render("[yn]"),
                     ],
                 );
-                return quit_view_style().render(&text);
+                return View::new(quit_view_style().render(&text));
             }
-            return "Very important, thank you\n".to_string();
+            return View::new("Very important, thank you\n");
         }
 
         let help_view = self.help.view(self);
@@ -190,19 +190,18 @@ impl Model for AppModel {
             textarea_content
         };
 
-        format!(
+        View::new(format!(
             "\nType some important things.\n\n{}\n\n {}\n {}\n\n",
             placeholder_or_content,
             save_text_style().render(&self.save_text),
             help_view
-        )
+        ))
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<AppModel>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

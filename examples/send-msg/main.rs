@@ -9,7 +9,7 @@
 //! - Message buffering and display
 //! - Proper styling with lipgloss-extras
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, batch, quit, tick};
 use lipgloss_extras::lipgloss::{Color, Style};
 use rand::RngExt;
 use std::time::Duration;
@@ -148,7 +148,7 @@ impl Model for SendMsgModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut s = String::new();
 
         if self.quitting {
@@ -178,7 +178,9 @@ impl Model for SendMsgModel {
 
         // Apply app styling with margins (matching Go version)
         let app_style = Style::new().margin(1, 2, 0, 2);
-        app_style.render(&s)
+        let mut view = View::new(app_style.render(&s));
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -222,7 +224,6 @@ fn simulate_food_eating() -> Cmd {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<SendMsgModel>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

@@ -38,7 +38,7 @@
 //! # bubble-t Integration
 //!
 //! ```rust
-//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd};
+//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd, View};
 //! use bubble_t_widgets::spinner::{new, with_spinner, DOT, TickMsg};
 //!
 //! struct MyApp {
@@ -57,13 +57,13 @@
 //!         self.spinner.update(msg)
 //!     }
 //!
-//!     fn view(&self) -> String {
-//!         format!("{} Loading...", self.spinner.view())
+//!     fn view(&self) -> View {
+//!         View::new(format!("{} Loading...", self.spinner.view()))
 //!     }
 //! }
 //! ```
 
-use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, tick as bubbletea_tick};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, tick as bubbletea_tick};
 use lipgloss_extras::prelude::*;
 use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -767,8 +767,8 @@ impl BubbleTeaModel for Model {
         self.update(msg)
     }
 
-    fn view(&self) -> String {
-        self.view()
+    fn view(&self) -> View {
+        View::new(self.view())
     }
 }
 

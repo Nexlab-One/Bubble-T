@@ -8,7 +8,7 @@
 //! - Command composition and orchestration
 //! - Automatic program termination after command completion
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, println, quit, sequence};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, batch, println, quit, sequence};
 
 /// The application model - minimal like the Go version
 #[derive(Debug)]
@@ -44,9 +44,9 @@ impl Model for SequenceModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Empty view like the Go version - all output is via println commands
-        String::new()
+        View::new(String::new())
     }
 }
 

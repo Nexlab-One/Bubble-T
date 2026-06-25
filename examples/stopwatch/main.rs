@@ -12,7 +12,7 @@
 //! - Reset to 00:00 with 'r'
 //! - Quit with 'q' or Ctrl+C
 
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, View, quit};
 use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
 use bubble_t_widgets::key::{
     Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
@@ -165,7 +165,7 @@ impl BubbleTeaModel for Model {
         self.stopwatch.update(msg)
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Match Go's View() method exactly
 
         // Note: you could further customize the time output by getting the
@@ -179,7 +179,7 @@ impl BubbleTeaModel for Model {
             s.push_str(&self.help.view(self));
         }
 
-        s
+        View::new(s)
     }
 }
 

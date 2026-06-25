@@ -1,4 +1,6 @@
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, window_size};
+use bubble_t::{
+    Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, View, WindowSizeMsg, window_size,
+};
 use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
 use bubble_t_widgets::key::{
     Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
@@ -602,27 +604,29 @@ impl BubbleTeaModel for Model {
         self.list.update(msg)
     }
 
-    fn view(&self) -> String {
-        let mut view = self.list.view();
+    fn view(&self) -> View {
+        let mut content = self.list.view().content;
 
         // Add status message if present
         if !self.status_message.is_empty() {
-            view = format!("{}\n\n{}", view, self.status_message);
+            content = format!("{}\n\n{}", content, self.status_message);
         }
 
         // Add comprehensive help at the bottom
         let help_view = self.help.view(self);
         if !help_view.is_empty() {
-            view = format!("{}\n\n{}", view, help_view);
+            content = format!("{}\n\n{}", content, help_view);
         }
 
-        app_style().render(&view)
+        let mut view = View::new(app_style().render(&content));
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let program = Program::<Model>::builder().alt_screen(true).build()?;
+    let program = Program::<Model>::builder().build()?;
 
     program.run().await?;
     Ok(())

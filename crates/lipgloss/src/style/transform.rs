@@ -20,7 +20,7 @@
 //!     .transform(|text| text.to_uppercase());
 //! ```
 
-use crate::renderer::Renderer;
+use crate::output::OutputContext;
 use crate::security::validate_tab_width;
 use crate::style::{Style, properties::*};
 use std::sync::Arc;
@@ -121,53 +121,28 @@ impl Style {
         self
     }
 
-    /// Sets a custom renderer for this style.
+    /// Sets a custom [`OutputContext`](crate::output::OutputContext) for this style.
     ///
-    /// This allows you to override the default renderer with a custom one that may have
-    /// different color profiles, output capabilities, or rendering behavior. This is
-    /// useful when you need to render styles for different terminal environments or
-    /// when building styles for specific output contexts.
-    ///
-    /// # Arguments
-    ///
-    /// * `r` - A `Renderer` instance configured for your specific output context.
-    ///   This could be a renderer with different color profiles, output streams,
-    ///   or terminal capabilities.
-    ///
-    /// # Returns
-    ///
-    /// Returns the modified `Style` instance for method chaining.
+    /// This allows you to override the default output context with one that has
+    /// different color profiles, output capabilities, or rendering behavior.
     ///
     /// # Examples
     ///
     /// ```rust
     /// use lipgloss::Style;
-    /// use lipgloss::renderer::{Renderer, ColorProfileKind};
+    /// use lipgloss::output::{ColorProfileKind, OutputContext};
     ///
-    /// // Create a renderer for 256-color output
-    /// let mut color_renderer = Renderer::new();
-    /// color_renderer.set_color_profile(ColorProfileKind::ANSI256);
+    /// let mut ctx = OutputContext::default();
+    /// ctx.set_color_profile(ColorProfileKind::ANSI256);
     ///
     /// let style = Style::new()
     ///     .foreground("red")
-    ///     .renderer(color_renderer.clone());
+    ///     .output_context(ctx.clone());
     ///
-    /// // This style will ignore colors when rendering
-    /// let result = style.render("Hello World");
-    ///
-    /// // Reuse the renderer on another style
-    /// let colorful_style = Style::new()
-    ///     .background("#2d7dc8")
-    ///     .renderer(color_renderer);
+    /// let _ = style.render("Hello World");
     /// ```
-    ///
-    /// # Note
-    ///
-    /// If no custom renderer is set, the style will use the default global renderer.
-    /// Setting a custom renderer only affects this specific style instance and doesn't
-    /// change the global rendering behavior.
-    pub fn renderer(mut self, r: Renderer) -> Self {
-        self.r = Some(r);
+    pub fn output_context(mut self, ctx: OutputContext) -> Self {
+        self.r = Some(ctx);
         self
     }
 }

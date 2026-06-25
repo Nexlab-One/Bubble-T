@@ -2,11 +2,11 @@
 //! Commands are asynchronous operations that can produce messages to update the model.
 
 use crate::event::{
-    BatchCmdMsg, ClearScreenMsg, DisableBracketedPasteMsg, DisableMouseMsg, DisableReportFocusMsg,
-    EnableBracketedPasteMsg, EnableMouseAllMotionMsg, EnableMouseCellMotionMsg,
-    EnableReportFocusMsg, EnterAltScreenMsg, ExitAltScreenMsg, HideCursorMsg, InterruptMsg,
-    KillMsg, Msg, PrintMsg, PrintfMsg, QuitMsg, RequestWindowSizeMsg, ShowCursorMsg, SuspendMsg,
-    next_timer_id,
+    BatchCmdMsg, ClearScreenMsg, InterruptMsg, KillMsg, Msg, PrintMsg, PrintfMsg, QuitMsg,
+    RawCmdMsg, ReadClipboardCmdMsg, ReadPrimaryClipboardCmdMsg, RequestBackgroundColorCmdMsg,
+    RequestCapabilityCmdMsg, RequestCursorColorCmdMsg, RequestCursorPositionCmdMsg,
+    RequestForegroundColorCmdMsg, RequestTerminalVersionCmdMsg, RequestWindowSizeMsg,
+    SetClipboardCmdMsg, SetPrimaryClipboardCmdMsg, SuspendMsg, next_timer_id,
 };
 use std::future::Future;
 use std::pin::Pin;
@@ -84,8 +84,8 @@ pub static COMMAND_ENV: OnceLock<std::collections::HashMap<String, String>> = On
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         "Press 'q' to quit".to_string()
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new("Press 'q' to quit")
 ///     }
 /// }
 /// ```
@@ -120,8 +120,8 @@ pub fn quit() -> Cmd {
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         "Running...".to_string()
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new("Running...")
 ///     }
 /// }
 /// ```
@@ -173,11 +173,10 @@ pub fn suspend() -> Cmd {
 ///         let model = Self {};
 ///         // Execute multiple operations concurrently
 ///         let cmd = command::batch(vec![
-///             command::window_size(),  // Get window dimensions
+///             command::window_size(),
 ///             command::tick(Duration::from_secs(1), |_| {
 ///                 Box::new("InitialTickMsg") as Msg
 ///             }),
-///             command::hide_cursor(),  // Hide the cursor
 ///         ]);
 ///         (model, Some(cmd))
 ///     }
@@ -186,8 +185,8 @@ pub fn suspend() -> Cmd {
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         "Loading...".to_string()
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new("Loading...")
 ///     }
 /// }
 /// ```
@@ -225,9 +224,7 @@ pub fn batch(cmds: Vec<Cmd>) -> Cmd {
 ///         let model = Self {};
 ///         // Execute operations in order
 ///         let cmd = command::sequence(vec![
-///             command::enter_alt_screen(),     // First, enter alt screen
-///             command::clear_screen(),         // Then clear it
-///             command::hide_cursor(),          // Finally hide the cursor
+///             command::clear_screen(),
 ///         ]);
 ///         (model, Some(cmd))
 ///     }
@@ -236,8 +233,8 @@ pub fn batch(cmds: Vec<Cmd>) -> Cmd {
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         "Ready".to_string()
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new("Ready")
 ///     }
 /// }
 /// ```
@@ -310,8 +307,8 @@ pub fn sequence(cmds: Vec<Cmd>) -> Cmd {
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         format!("Counter: {}", self.counter)
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new(format!("Counter: {}", self.counter))
 ///     }
 /// }
 /// ```
@@ -379,8 +376,8 @@ where
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         format!("Time elapsed: {:?}", self.time_elapsed)
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new(format!("Time elapsed: {:?}", self.time_elapsed))
 ///     }
 /// }
 /// ```
@@ -464,11 +461,11 @@ where
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
+///     fn view(&self) -> bubble_t::View {
 ///         if self.is_animating {
-///             "Animating...".to_string()
+///             bubble_t::View::new("Animating...")
 ///         } else {
-///             "Stopped".to_string()
+///             bubble_t::View::new("Stopped")
 ///         }
 ///     }
 /// }
@@ -548,8 +545,8 @@ where
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         format!("Git status:\n{}", self.git_status)
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new(format!("Git status:\n{}", self.git_status))
 ///     }
 /// }
 /// ```
@@ -568,125 +565,6 @@ where
         let output = TokioCommand::from(cmd).output().await;
         Some(f(output))
     })
-}
-
-/// Creates a command that enters the alternate screen buffer.
-///
-/// This command sends an `EnterAltScreenMsg` to the program, which will cause
-/// the terminal to switch to the alternate screen buffer. The alternate screen
-/// is typically used by full-screen TUI applications to preserve the user's
-/// terminal scrollback.
-///
-/// # Examples
-///
-/// ```
-/// use bubble_t::{command, Model, Msg};
-///
-/// struct MyModel;
-///
-/// impl Model for MyModel {
-///     fn init() -> (Self, Option<command::Cmd>) {
-///         let model = Self {};
-///         // Enter alternate screen on startup
-///         let cmd = command::batch(vec![
-///             command::enter_alt_screen(),
-///             command::hide_cursor(),
-///         ]);
-///         (model, Some(cmd))
-///     }
-///     
-///     fn update(&mut self, msg: Msg) -> Option<command::Cmd> {
-///         None
-///     }
-///     
-///     fn view(&self) -> String {
-///         "TUI Application".to_string()
-///     }
-/// }
-/// ```
-pub fn enter_alt_screen() -> Cmd {
-    Box::pin(async { Some(Box::new(EnterAltScreenMsg) as Msg) })
-}
-
-/// Creates a command that exits the alternate screen buffer.
-///
-/// This command sends an `ExitAltScreenMsg` to the program, which will cause
-/// the terminal to switch back from the alternate screen buffer.
-pub fn exit_alt_screen() -> Cmd {
-    Box::pin(async { Some(Box::new(ExitAltScreenMsg) as Msg) })
-}
-
-/// Creates a command that enables mouse cell motion reporting.
-///
-/// This command sends an `EnableMouseCellMotionMsg` to the program, which will
-/// enable mouse events for individual cells in the terminal.
-pub fn enable_mouse_cell_motion() -> Cmd {
-    Box::pin(async { Some(Box::new(EnableMouseCellMotionMsg) as Msg) })
-}
-
-/// Creates a command that enables all mouse motion reporting.
-///
-/// This command sends an `EnableMouseAllMotionMsg` to the program, which will
-/// enable all mouse events in the terminal.
-pub fn enable_mouse_all_motion() -> Cmd {
-    Box::pin(async { Some(Box::new(EnableMouseAllMotionMsg) as Msg) })
-}
-
-/// Creates a command that disables mouse reporting.
-///
-/// This command sends a `DisableMouseMsg` to the program, which will disable
-/// all mouse events in the terminal.
-pub fn disable_mouse() -> Cmd {
-    Box::pin(async { Some(Box::new(DisableMouseMsg) as Msg) })
-}
-
-/// Creates a command that enables focus reporting.
-///
-/// This command sends an `EnableReportFocusMsg` to the program, which will
-/// enable focus events in the terminal.
-pub fn enable_report_focus() -> Cmd {
-    Box::pin(async { Some(Box::new(EnableReportFocusMsg) as Msg) })
-}
-
-/// Creates a command that disables focus reporting.
-///
-/// This command sends a `DisableReportFocusMsg` to the program, which will
-/// disable focus events in the terminal.
-pub fn disable_report_focus() -> Cmd {
-    Box::pin(async { Some(Box::new(DisableReportFocusMsg) as Msg) })
-}
-
-/// Creates a command that enables bracketed paste mode.
-///
-/// This command sends an `EnableBracketedPasteMsg` to the program, which will
-/// enable bracketed paste mode in the terminal. This helps distinguish pasted
-/// text from typed text.
-pub fn enable_bracketed_paste() -> Cmd {
-    Box::pin(async { Some(Box::new(EnableBracketedPasteMsg) as Msg) })
-}
-
-/// Creates a command that disables bracketed paste mode.
-///
-/// This command sends a `DisableBracketedPasteMsg` to the program, which will
-/// disable bracketed paste mode in the terminal.
-pub fn disable_bracketed_paste() -> Cmd {
-    Box::pin(async { Some(Box::new(DisableBracketedPasteMsg) as Msg) })
-}
-
-/// Creates a command that shows the terminal cursor.
-///
-/// This command sends a `ShowCursorMsg` to the program, which will make the
-/// terminal cursor visible.
-pub fn show_cursor() -> Cmd {
-    Box::pin(async { Some(Box::new(ShowCursorMsg) as Msg) })
-}
-
-/// Creates a command that hides the terminal cursor.
-///
-/// This command sends a `HideCursorMsg` to the program, which will make the
-/// terminal cursor invisible.
-pub fn hide_cursor() -> Cmd {
-    Box::pin(async { Some(Box::new(HideCursorMsg) as Msg) })
 }
 
 /// Creates a command that clears the terminal screen.
@@ -728,8 +606,8 @@ pub fn clear_screen() -> Cmd {
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         format!("Window size: {}x{}", self.width, self.height)
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new(format!("Window size: {}x{}", self.width, self.height))
 ///     }
 /// }
 /// ```
@@ -772,8 +650,8 @@ pub fn window_size() -> Cmd {
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
-///         "Debug mode active".to_string()
+///     fn view(&self) -> bubble_t::View {
+///         bubble_t::View::new("Debug mode active")
 ///     }
 /// }
 /// ```
@@ -787,58 +665,6 @@ pub fn println(s: String) -> Cmd {
 /// provided formatted string to the terminal.
 pub fn printf(s: String) -> Cmd {
     Box::pin(async move { Some(Box::new(PrintfMsg(s)) as Msg) })
-}
-
-/// Creates a command that sets the terminal window title.
-///
-/// This command sends a `SetWindowTitleMsg` to the program, which will update
-/// the terminal window's title. Note that not all terminals support this feature.
-///
-/// # Arguments
-///
-/// * `title` - The new window title
-///
-/// # Examples
-///
-/// ```
-/// use bubble_t::{command, Model, Msg};
-///
-/// struct MyModel {
-///     app_name: String,
-///     document_name: Option<String>,
-/// }
-///
-/// impl Model for MyModel {
-///     fn init() -> (Self, Option<command::Cmd>) {
-///         let model = Self {
-///             app_name: "My App".to_string(),
-///             document_name: None,
-///         };
-///         // Set initial window title
-///         let cmd = command::set_window_title(model.app_name.clone());
-///         (model, Some(cmd))
-///     }
-///
-///     fn update(&mut self, msg: Msg) -> Option<command::Cmd> {
-///         // In a real app, you'd check for document open messages
-///         // Update title when document changes
-///         if let Some(doc_name) = &self.document_name {
-///             let title = format!("{} - {}", doc_name, self.app_name);
-///             return Some(command::set_window_title(title));
-///         }
-///         None
-///     }
-///     
-///     fn view(&self) -> String {
-///         match &self.document_name {
-///             Some(doc) => format!("Editing: {}", doc),
-///             None => "No document open".to_string(),
-///         }
-///     }
-/// }
-/// ```
-pub fn set_window_title(title: String) -> Cmd {
-    Box::pin(async move { Some(Box::new(crate::event::SetWindowTitleMsg(title)) as Msg) })
 }
 
 /// Creates a command that cancels a specific timer.
@@ -884,11 +710,11 @@ pub fn set_window_title(title: String) -> Cmd {
 ///         None
 ///     }
 ///     
-///     fn view(&self) -> String {
+///     fn view(&self) -> bubble_t::View {
 ///         if self.timer_id.is_some() {
-///             "Timer running. Press 's' to stop.".to_string()
+///             bubble_t::View::new("Timer running. Press 's' to stop.")
 ///         } else {
-///             "Timer stopped.".to_string()
+///             bubble_t::View::new("Timer stopped.")
 ///         }
 ///     }
 /// }
@@ -903,4 +729,101 @@ pub fn cancel_timer(timer_id: u64) -> Cmd {
 /// all currently running timers.
 pub fn cancel_all_timers() -> Cmd {
     Box::pin(async move { Some(Box::new(crate::event::CancelAllTimersMsg) as Msg) })
+}
+
+/// Sends a raw escape sequence to the terminal without processing.
+pub fn raw(seq: impl Into<String>) -> Cmd {
+    let seq = seq.into();
+    Box::pin(async move { Some(Box::new(RawCmdMsg(seq)) as Msg) })
+}
+
+/// Requests the terminal cursor position; the response arrives as [`CursorPositionMsg`](crate::CursorPositionMsg).
+pub fn request_cursor_position() -> Cmd {
+    Box::pin(async { Some(Box::new(RequestCursorPositionCmdMsg) as Msg) })
+}
+
+/// Requests the default terminal foreground color.
+pub fn request_foreground_color() -> Cmd {
+    Box::pin(async { Some(Box::new(RequestForegroundColorCmdMsg) as Msg) })
+}
+
+/// Requests the default terminal background color.
+pub fn request_background_color() -> Cmd {
+    Box::pin(async { Some(Box::new(RequestBackgroundColorCmdMsg) as Msg) })
+}
+
+/// Requests the terminal cursor color.
+pub fn request_cursor_color() -> Cmd {
+    Box::pin(async { Some(Box::new(RequestCursorColorCmdMsg) as Msg) })
+}
+
+/// Queries the terminal name/version via XTVERSION.
+pub fn request_terminal_version() -> Cmd {
+    Box::pin(async { Some(Box::new(RequestTerminalVersionCmdMsg) as Msg) })
+}
+
+/// Queries a terminfo/termcap capability (e.g. `"RGB"`, `"Tc"`).
+pub fn request_capability(name: impl Into<String>) -> Cmd {
+    let name = name.into();
+    Box::pin(async move { Some(Box::new(RequestCapabilityCmdMsg(name)) as Msg) })
+}
+
+/// Sets the system clipboard via OSC 52.
+pub fn set_clipboard(data: impl Into<String>) -> Cmd {
+    let data = data.into();
+    Box::pin(async move { Some(Box::new(SetClipboardCmdMsg(data)) as Msg) })
+}
+
+/// Reads the system clipboard via OSC 52.
+pub fn read_clipboard() -> Cmd {
+    Box::pin(async { Some(Box::new(ReadClipboardCmdMsg) as Msg) })
+}
+
+/// Sets the primary selection clipboard via OSC 52.
+pub fn set_primary_clipboard(data: impl Into<String>) -> Cmd {
+    let data = data.into();
+    Box::pin(async move { Some(Box::new(SetPrimaryClipboardCmdMsg(data)) as Msg) })
+}
+
+/// Reads the primary selection clipboard via OSC 52.
+pub fn read_primary_clipboard() -> Cmd {
+    Box::pin(async { Some(Box::new(ReadPrimaryClipboardCmdMsg) as Msg) })
+}
+
+#[cfg(test)]
+mod command_tests {
+    use super::*;
+    use crate::event::{
+        RawCmdMsg, ReadClipboardCmdMsg, RequestCursorPositionCmdMsg, SetClipboardCmdMsg,
+    };
+
+    #[tokio::test]
+    async fn raw_command_returns_msg() {
+        let cmd = raw("\x1b[c");
+        let Some(msg) = cmd.await else {
+            panic!("command should emit a message");
+        };
+        assert!(msg.is::<RawCmdMsg>());
+    }
+
+    #[tokio::test]
+    async fn request_cursor_position_returns_msg() {
+        let cmd = request_cursor_position();
+        let Some(msg) = cmd.await else {
+            panic!("command should emit a message");
+        };
+        assert!(msg.is::<RequestCursorPositionCmdMsg>());
+    }
+
+    #[tokio::test]
+    async fn clipboard_commands_return_msgs() {
+        let Some(set) = set_clipboard("hello").await else {
+            panic!("set_clipboard should emit a message");
+        };
+        assert!(set.is::<SetClipboardCmdMsg>());
+        let Some(read) = read_clipboard().await else {
+            panic!("read_clipboard should emit a message");
+        };
+        assert!(read.is::<ReadClipboardCmdMsg>());
+    }
 }

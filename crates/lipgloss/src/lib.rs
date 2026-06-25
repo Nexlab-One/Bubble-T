@@ -76,7 +76,7 @@
 //! - [`join`] - Horizontal and vertical layout joining
 //! - [`mod@size`] - Dimension measurement and calculation
 //! - [`whitespace`] - Styled whitespace and filler generation
-//! - [`renderer`] - Terminal rendering and color profile detection
+//! - [`output`] - Output context, color profile detection, and downsampling
 //!
 //! # Advanced Usage
 //!
@@ -118,7 +118,7 @@
 
 /// Special value for [`Style::tab_width`] to disable tab conversion entirely.
 ///
-/// When passed to [`Style::tab_width`], this value instructs the renderer to leave
+/// When passed to [`Style::tab_width`], this value instructs the OutputContext to leave
 /// tab characters (`\t`) unchanged rather than converting them to spaces. This is
 /// useful when you want to preserve the original tab characters in the output.
 ///
@@ -142,11 +142,14 @@ pub const NO_TAB_CONVERSION: i32 = -1;
 pub mod align;
 pub mod blending;
 pub mod border;
+pub mod canvas;
 pub mod color;
 pub mod gradient;
+pub mod image;
 pub mod join;
+pub mod layer;
+pub mod output;
 pub mod position;
-pub mod renderer;
 pub mod security;
 pub mod size;
 pub mod style;
@@ -154,13 +157,18 @@ pub mod utils;
 pub mod whitespace;
 
 pub use align::*;
-pub use blending::{blend_1d, blend_2d};
+pub use blending::{Blend1D, Blend2D, BlendBorder, blend_1d, blend_2d, blend_border};
 pub use border::*;
+pub use canvas::Canvas;
 pub use color::*;
 pub use gradient::{bilinear_interpolation_grid, gradient, gradient_rgb};
 pub use join::*;
+pub use layer::{Compositor, Layer, LayerHit};
+pub use output::{
+    ColorProfileKind, Output, OutputContext, color_profile, default_output, env_only_profile,
+    has_dark_background, set_color_profile, set_default_output, set_has_dark_background,
+};
 pub use position::*;
-pub use renderer::*;
 pub use size::*;
 pub use style::*;
 

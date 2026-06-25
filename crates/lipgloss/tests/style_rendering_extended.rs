@@ -6,8 +6,8 @@ fn show_escapes(s: &str) -> String {
 
 /// Helper function to detect if we're in a no-color environment (like CI)
 fn is_no_color_environment() -> bool {
-    use lipgloss::renderer::{ColorProfileKind, default_renderer};
-    default_renderer().color_profile() == ColorProfileKind::NoColor
+    use lipgloss::output::{ColorProfileKind, default_output};
+    default_output().color_profile() == ColorProfileKind::NoColor
 }
 
 #[test]
@@ -168,15 +168,15 @@ fn renderer_assignment_color_profile_effects() {
         return;
     }
     use lipgloss::color::Color;
-    use lipgloss::renderer::{ColorProfileKind, Renderer};
+    use lipgloss::output::{ColorProfileKind, OutputContext};
 
     // With colors: expect ANSI sequences when profile != NoColor
     let base = Style::default().foreground(Color::from("#ff0000"));
 
-    // TrueColor renderer
-    let mut r_true = Renderer::new();
+    // TrueColor OutputContext
+    let mut r_true = OutputContext::default();
     r_true.set_color_profile(ColorProfileKind::TrueColor);
-    let out_true = base.clone().renderer(r_true).render("hello");
+    let out_true = base.clone().output_context(r_true).render("hello");
     assert!(
         out_true.contains("\x1b["),
         "TrueColor should include SGR escapes: {}",
@@ -184,20 +184,20 @@ fn renderer_assignment_color_profile_effects() {
     );
     assert!(out_true.ends_with("\x1b[0m"), "Should reset at end");
 
-    // ANSI renderer
-    let mut r_ansi = Renderer::new();
+    // ANSI OutputContext
+    let mut r_ansi = OutputContext::default();
     r_ansi.set_color_profile(ColorProfileKind::ANSI);
-    let out_ansi = base.clone().renderer(r_ansi).render("hello");
+    let out_ansi = base.clone().output_context(r_ansi).render("hello");
     assert!(
         out_ansi.contains("\x1b["),
         "ANSI should include SGR escapes: {}",
         show_escapes(&out_ansi)
     );
 
-    // NoColor renderer
-    let mut r_none = Renderer::new();
+    // NoColor OutputContext
+    let mut r_none = OutputContext::default();
     r_none.set_color_profile(ColorProfileKind::NoColor);
-    let out_none = base.renderer(r_none).render("hello");
+    let out_none = base.output_context(r_none).render("hello");
     assert_eq!(
         out_none,
         "hello",
@@ -213,7 +213,7 @@ fn adaptive_color_changes_with_background() {
         return;
     }
     use lipgloss::color::AdaptiveColor;
-    use lipgloss::renderer::Renderer;
+    use lipgloss::output::OutputContext;
 
     let adaptive = AdaptiveColor {
         Light: "#0000FF",
@@ -222,15 +222,15 @@ fn adaptive_color_changes_with_background() {
     let base = Style::default().foreground(adaptive);
 
     // Dark background -> use Dark color
-    let mut r_dark = Renderer::new();
+    let mut r_dark = OutputContext::default();
     r_dark.set_has_dark_background(true);
-    let s_dark = base.clone().renderer(r_dark);
+    let s_dark = base.clone().output_context(r_dark);
     let out_dark = s_dark.render("x");
 
     // Light background -> use Light color
-    let mut r_light = Renderer::new();
+    let mut r_light = OutputContext::default();
     r_light.set_has_dark_background(false);
-    let s_light = base.renderer(r_light);
+    let s_light = base.output_context(r_light);
     let out_light = s_light.render("x");
 
     // Ensure coloring applies under both backgrounds
@@ -245,7 +245,7 @@ fn complete_color_changes_with_profile() {
         return;
     }
     use lipgloss::color::CompleteColor;
-    use lipgloss::renderer::{ColorProfileKind, Renderer};
+    use lipgloss::output::{ColorProfileKind, OutputContext};
 
     let complete = CompleteColor {
         TrueColor: "#FF0000".to_string(),
@@ -254,17 +254,17 @@ fn complete_color_changes_with_profile() {
     };
     let base = Style::default().foreground(complete);
 
-    let mut r_true = Renderer::new();
+    let mut r_true = OutputContext::default();
     r_true.set_color_profile(ColorProfileKind::TrueColor);
-    let out_true = base.clone().renderer(r_true).render("z");
+    let out_true = base.clone().output_context(r_true).render("z");
 
-    let mut r_256 = Renderer::new();
+    let mut r_256 = OutputContext::default();
     r_256.set_color_profile(ColorProfileKind::ANSI256);
-    let out_256 = base.clone().renderer(r_256).render("z");
+    let out_256 = base.clone().output_context(r_256).render("z");
 
-    let mut r_ansi = Renderer::new();
+    let mut r_ansi = OutputContext::default();
     r_ansi.set_color_profile(ColorProfileKind::ANSI);
-    let out_ansi = base.renderer(r_ansi).render("z");
+    let out_ansi = base.output_context(r_ansi).render("z");
 
     // All colored, but should not be identical across profiles
     assert!(out_true.contains("\x1b["));

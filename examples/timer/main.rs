@@ -13,7 +13,7 @@
 //! - Quit with 'q' or Ctrl+C
 //! - Automatic quit when timer reaches zero
 
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, View, quit};
 use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
 use bubble_t_widgets::key::{
     Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
@@ -208,7 +208,7 @@ impl BubbleTeaModel for Model {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Match Go's View() method exactly
 
         // For a more detailed timer view you could read m.timer.Timeout to get
@@ -228,7 +228,7 @@ impl BubbleTeaModel for Model {
             s.push_str(&self.help.view(self));
         }
 
-        s
+        View::new(s)
     }
 }
 

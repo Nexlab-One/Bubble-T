@@ -392,7 +392,7 @@ impl Default for Styles {
 /// ## Integration with BubbleTea
 /// ```rust
 /// # use bubble_t_widgets::help::{Model, KeyMap};
-/// # use bubble_t::{Msg, Model as BubbleTeaModel};
+/// # use bubble_t::{Msg, Model as BubbleTeaModel, View};
 /// # struct MyApp { help: Model }
 /// # impl KeyMap for MyApp {
 /// #   fn short_help(&self) -> Vec<&bubble_t_widgets::key::Binding> { vec![] }
@@ -405,10 +405,10 @@ impl Default for Styles {
 /// self.help.show_all = !self.help.show_all;
 /// None
 /// #   }
-/// #   fn view(&self) -> String {
+/// #   fn view(&self) -> View {
 /// // Render help at bottom of your application view
 /// let help_view = self.help.view(self);
-/// format!("{}\n{}", "Your app content here", help_view)
+/// View::new(format!("{}\n{}", "Your app content here", help_view))
 /// #   }
 /// # }
 /// ```
@@ -588,7 +588,7 @@ impl Model {
     /// ## Integration Pattern
     /// ```rust
     /// # use bubble_t_widgets::help::Model;
-    /// # use bubble_t::{Msg, Model as BubbleTeaModel, KeyMsg};
+    /// # use bubble_t::{Msg, Model as BubbleTeaModel, KeyMsg, View};
     /// # use crossterm::event::KeyCode;
     /// # struct MyApp { help: Model }
     /// # impl bubble_t_widgets::help::KeyMap for MyApp {
@@ -609,7 +609,7 @@ impl Model {
     /// let (_unchanged_help, _no_cmd) = self.help.clone().update(msg);
     /// None
     /// #   }
-    /// #   fn view(&self) -> String { String::new() }
+    /// #   fn view(&self) -> View { View::new("") }
     /// # }
     /// ```
     pub fn update(self, _msg: Msg) -> (Self, Option<Cmd>) {

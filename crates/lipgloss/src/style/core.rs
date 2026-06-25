@@ -16,8 +16,8 @@
 //! - **Flexible Rendering**: Support for custom renderers and text transforms
 
 use crate::border::{Border, hidden_border};
+use crate::output::OutputContext;
 use crate::position::{LEFT, Position, TOP};
-use crate::renderer::Renderer;
 use crate::style::properties::*;
 use std::sync::Arc;
 
@@ -86,8 +86,8 @@ use std::sync::Arc;
 /// ```
 #[derive(Clone)]
 pub struct Style {
-    // Optional renderer
-    pub(crate) r: Option<Renderer>,
+    // Optional OutputContext
+    pub(crate) r: Option<OutputContext>,
 
     // Bitfield tracking which properties are set
     pub(crate) props: u64,
@@ -139,6 +139,9 @@ pub struct Style {
     // Misc
     pub(crate) tab_width: i32,
     pub(crate) transform: Option<Arc<dyn Fn(String) -> String + Send + Sync>>,
+    pub(crate) hyperlink: Option<String>,
+    pub(crate) hyperlink_params: String,
+    pub(crate) underline_style: u8,
 }
 
 impl Default for Style {
@@ -194,11 +197,19 @@ impl Default for Style {
             border_left_bg_color: None,
             tab_width: TAB_WIDTH_DEFAULT,
             transform: None,
+            hyperlink: None,
+            hyperlink_params: String::new(),
+            underline_style: 1,
         }
     }
 }
 
 impl Style {
+    /// Output context used when resolving color tokens on this style.
+    pub(crate) fn color_output(&self) -> OutputContext {
+        self.r.clone().unwrap_or_else(crate::output::default_output)
+    }
+
     /// Checks if a specific property has been explicitly set on this style.
     ///
     /// This method uses bitfield operations to efficiently determine whether

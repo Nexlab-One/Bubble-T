@@ -31,7 +31,7 @@
 //! let cmd = progress.decr_percent(0.05); // Subtract 5%
 //! ```
 
-use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, tick as bubbletea_tick};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, tick as bubbletea_tick};
 use lipgloss_extras::lipgloss::Color as LGColor;
 use lipgloss_extras::lipgloss::blending::blend_1d;
 use lipgloss_extras::prelude::*;
@@ -447,33 +447,21 @@ pub struct FrameMsg {
     tag: i64,
 }
 
-/// Simple spring animation system (simplified version of harmonica)
+/// Simple spring animation using [`harmonica`].
 #[derive(Debug, Clone)]
 struct Spring {
-    frequency: f64,
-    damping: f64,
-    fps: f64,
+    inner: harmonica::Spring,
 }
 
 impl Spring {
     fn new(fps: f64, frequency: f64, damping: f64) -> Self {
         Self {
-            frequency,
-            damping,
-            fps,
+            inner: harmonica::new_spring(1.0 / fps, frequency, damping),
         }
     }
 
     fn update(&self, position: f64, velocity: f64, target: f64) -> (f64, f64) {
-        let dt = 1.0 / self.fps;
-        let spring_force = -self.frequency * (position - target);
-        let damping_force = -self.damping * velocity;
-        let acceleration = spring_force + damping_force;
-
-        let new_velocity = velocity + acceleration * dt;
-        let new_position = position + new_velocity * dt;
-
-        (new_position, new_velocity)
+        self.inner.update(position, velocity, target)
     }
 }
 
@@ -530,7 +518,7 @@ impl Spring {
 /// ## Integration with bubble-t
 /// ```rust
 /// use bubble_t_widgets::progress;
-/// use bubble_t::{Model as TeaModel, Cmd, Msg};
+/// use bubble_t::{Model as TeaModel, Cmd, Msg, View};
 ///
 /// struct App {
 ///     progress: progress::Model,
@@ -550,8 +538,8 @@ impl Spring {
 ///         self.progress.update(msg)
 ///     }
 ///
-///     fn view(&self) -> String {
-///         format!("Loading: {}\n", self.progress.view())
+///     fn view(&self) -> View {
+///         View::new(format!("Loading: {}\n", self.progress.view()))
 ///     }
 /// }
 /// ```
@@ -587,6 +575,8 @@ pub struct Model {
     /// Members for animated transitions.
     spring: Spring,
     spring_customized: bool,
+    spring_frequency: f64,
+    spring_damping: f64,
     percent_shown: f64,  // percent currently displaying
     target_percent: f64, // percent to which we're animating
     velocity: f64,
@@ -668,6 +658,8 @@ pub fn new(opts: &[ProgressOption]) -> Model {
         percentage_style: Style::new(),
         spring: Spring::new(FPS as f64, DEFAULT_FREQUENCY, DEFAULT_DAMPING),
         spring_customized: false,
+        spring_frequency: DEFAULT_FREQUENCY,
+        spring_damping: DEFAULT_DAMPING,
         percent_shown: 0.0,
         target_percent: 0.0,
         velocity: 0.0,
@@ -724,6 +716,8 @@ impl Model {
     /// let cmd = progress.set_percent(0.8);
     /// ```
     pub fn set_spring_options(&mut self, frequency: f64, damping: f64) {
+        self.spring_frequency = frequency;
+        self.spring_damping = damping;
         self.spring = Spring::new(FPS as f64, frequency, damping);
     }
 
@@ -774,7 +768,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::progress::new;
-    /// use bubble_t::{Model, Msg, Cmd};
+    /// use bubble_t::{Model, Msg, Cmd, View};
     ///
     /// struct App {
     ///     progress: bubble_t_widgets::progress::Model,
@@ -791,7 +785,7 @@ impl Model {
     ///         Some(self.progress.set_percent(0.6))
     ///     }
     /// #   fn init() -> (Self, Option<Cmd>) { (Self { progress: new(&[]) }, None) }
-    /// #   fn view(&self) -> String { String::new() }
+    /// #   fn view(&self) -> View { View::new("") }
     /// }
     /// ```
     ///
@@ -937,7 +931,7 @@ impl Model {
     /// ## Integration with bubble-t
     /// ```rust
     /// use bubble_t_widgets::progress;
-    /// use bubble_t::{Model, Msg, Cmd};
+    /// use bubble_t::{Model, Msg, Cmd, View};
     ///
     /// struct App {
     ///     progress: progress::Model,
@@ -954,7 +948,7 @@ impl Model {
     ///         None
     ///     }
     /// #   fn init() -> (Self, Option<Cmd>) { (Self { progress: progress::new(&[]) }, None) }
-    /// #   fn view(&self) -> String { String::new() }
+    /// #   fn view(&self) -> View { View::new("") }
     /// }
     /// ```
     ///
@@ -1267,8 +1261,8 @@ impl BubbleTeaModel for Model {
         self.update(msg)
     }
 
-    fn view(&self) -> String {
-        self.view()
+    fn view(&self) -> View {
+        View::new(self.view())
     }
 }
 
@@ -1357,8 +1351,8 @@ mod tests {
         // Test Go's: New(WithSpringOptions(20.0, 0.8))
         let progress = new(&[with_spring_options(20.0, 0.8)]);
         assert!(progress.spring_customized);
-        assert_eq!(progress.spring.frequency, 20.0);
-        assert_eq!(progress.spring.damping, 0.8);
+        assert_eq!(progress.spring_frequency, 20.0);
+        assert_eq!(progress.spring_damping, 0.8);
     }
 
     #[test]
@@ -1449,9 +1443,8 @@ mod tests {
         let mut progress = new(&[]);
         progress.set_spring_options(25.0, 1.5);
 
-        assert_eq!(progress.spring.frequency, 25.0);
-        assert_eq!(progress.spring.damping, 1.5);
-        assert_eq!(progress.spring.fps, FPS as f64);
+        assert_eq!(progress.spring_frequency, 25.0);
+        assert_eq!(progress.spring_damping, 1.5);
     }
 
     #[test]

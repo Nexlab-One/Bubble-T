@@ -19,7 +19,7 @@
 //!
 //! ```rust
 //! use bubble_t_widgets::filepicker::Model;
-//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd};
+//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd, View};
 //!
 //! // Create a new file picker
 //! let (mut filepicker, cmd) = Model::init();
@@ -66,7 +66,7 @@
 //! - `PageDown`/`f`: Page down
 
 use crate::key::{self, KeyMap};
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, legacy_key_msg};
 use lipgloss_extras::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -404,7 +404,7 @@ pub struct FileEntry {
 ///
 /// ```rust
 /// use bubble_t_widgets::filepicker::Model;
-/// use bubble_t::Model as BubbleTeaModel;
+/// use bubble_t::{Model as BubbleTeaModel, View};
 ///
 /// // Create a new file picker
 /// let mut picker = Model::new();
@@ -671,9 +671,9 @@ impl Model {
             return (false, String::new());
         }
 
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
+        if let Some(key_msg) = legacy_key_msg(msg) {
             // If the msg does not match the Select keymap then this could not have been a selection.
-            if !self.keymap.select.matches(key_msg) {
+            if !self.keymap.select.matches(&key_msg) {
                 return (false, String::new());
             }
 
@@ -1034,19 +1034,19 @@ impl BubbleTeaModel for Model {
             return None;
         }
 
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
+        if let Some(key_msg) = legacy_key_msg(&msg) {
             match key_msg {
-                key_msg if self.keymap.go_to_top.matches(key_msg) => {
+                key_msg if self.keymap.go_to_top.matches(&key_msg) => {
                     self.selected = 0;
                     self.min = 0;
                     self.max = self.height.saturating_sub(1);
                 }
-                key_msg if self.keymap.go_to_last.matches(key_msg) => {
+                key_msg if self.keymap.go_to_last.matches(&key_msg) => {
                     self.selected = self.files.len().saturating_sub(1);
                     self.min = self.files.len().saturating_sub(self.height);
                     self.max = self.files.len().saturating_sub(1);
                 }
-                key_msg if self.keymap.down.matches(key_msg) => {
+                key_msg if self.keymap.down.matches(&key_msg) => {
                     if self.selected < self.files.len().saturating_sub(1) {
                         self.selected += 1;
                     }
@@ -1055,14 +1055,14 @@ impl BubbleTeaModel for Model {
                         self.max += 1;
                     }
                 }
-                key_msg if self.keymap.up.matches(key_msg) => {
+                key_msg if self.keymap.up.matches(&key_msg) => {
                     self.selected = self.selected.saturating_sub(1);
                     if self.selected < self.min {
                         self.min = self.min.saturating_sub(1);
                         self.max = self.max.saturating_sub(1);
                     }
                 }
-                key_msg if self.keymap.page_down.matches(key_msg) => {
+                key_msg if self.keymap.page_down.matches(&key_msg) => {
                     self.selected += self.height;
                     if self.selected >= self.files.len() {
                         self.selected = self.files.len().saturating_sub(1);
@@ -1075,7 +1075,7 @@ impl BubbleTeaModel for Model {
                         self.min = self.max.saturating_sub(self.height);
                     }
                 }
-                key_msg if self.keymap.page_up.matches(key_msg) => {
+                key_msg if self.keymap.page_up.matches(&key_msg) => {
                     self.selected = self.selected.saturating_sub(self.height);
                     self.min = self.min.saturating_sub(self.height);
                     self.max = self.max.saturating_sub(self.height);
@@ -1085,7 +1085,7 @@ impl BubbleTeaModel for Model {
                         self.max = self.min + self.height;
                     }
                 }
-                key_msg if self.keymap.back.matches(key_msg) => {
+                key_msg if self.keymap.back.matches(&key_msg) => {
                     if let Some(parent) = self.current_directory.parent() {
                         self.current_directory = parent.to_path_buf();
                         if !self.selected_stack.is_empty() {
@@ -1101,7 +1101,7 @@ impl BubbleTeaModel for Model {
                         self.read_dir();
                     }
                 }
-                key_msg if self.keymap.open.matches(key_msg) && !self.files.is_empty() => {
+                key_msg if self.keymap.open.matches(&key_msg) && !self.files.is_empty() => {
                     let (file_path, is_dir) = {
                         let entry = &self.files[self.selected];
                         let mut is_dir = entry.is_dir;
@@ -1116,7 +1116,7 @@ impl BubbleTeaModel for Model {
 
                     // Check if we can select this file/directory
                     if ((!is_dir && self.file_allowed) || (is_dir && self.dir_allowed))
-                        && self.keymap.select.matches(key_msg)
+                        && self.keymap.select.matches(&key_msg)
                     {
                         // Select the current path as the selection
                         self.path = file_path.to_string_lossy().to_string();
@@ -1141,26 +1141,28 @@ impl BubbleTeaModel for Model {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Display error if present
         if let Some(error) = &self.error {
-            return self
-                .styles
-                .empty_directory
-                .clone()
-                .height(self.height as i32)
-                .max_height(self.height as i32)
-                .render(error);
+            return View::new(
+                self.styles
+                    .empty_directory
+                    .clone()
+                    .height(self.height as i32)
+                    .max_height(self.height as i32)
+                    .render(error),
+            );
         }
 
         if self.files.is_empty() {
-            return self
-                .styles
-                .empty_directory
-                .clone()
-                .height(self.height as i32)
-                .max_height(self.height as i32)
-                .render("Bummer. No Files Found.");
+            return View::new(
+                self.styles
+                    .empty_directory
+                    .clone()
+                    .height(self.height as i32)
+                    .max_height(self.height as i32)
+                    .render("Bummer. No Files Found."),
+            );
         }
 
         let mut output = String::new();
@@ -1247,7 +1249,7 @@ impl BubbleTeaModel for Model {
             output.push('\n');
         }
 
-        output
+        View::new(output)
     }
 }
 

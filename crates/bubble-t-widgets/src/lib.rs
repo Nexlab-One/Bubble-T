@@ -93,7 +93,7 @@
 //!
 //! ```rust
 //! use bubble_t_widgets::prelude::*;
-//! use bubble_t::{Model, Cmd, Msg};
+//! use bubble_t::{Model, Cmd, Msg, View};
 //!
 //! struct App {
 //!     input: TextInput,
@@ -119,8 +119,8 @@
 //!         }
 //!     }
 //!
-//!     fn view(&self) -> String {
-//!         format!("Enter text: {}\n{}", self.input.view(), "Press Ctrl+C to quit")
+//!     fn view(&self) -> View {
+//!         View::new(format!("Enter text: {}\n{}", self.input.view(), "Press Ctrl+C to quit"))
 //!     }
 //! }
 //! ```
@@ -383,7 +383,7 @@ pub use viewport::Model as Viewport;
 ///
 /// ```rust
 /// use bubble_t_widgets::prelude::*;
-/// use bubble_t::{Model, Cmd, Msg};
+/// use bubble_t::{Model, Cmd, Msg, View};
 ///
 /// struct App {
 ///     input: TextInput,
@@ -410,8 +410,8 @@ pub use viewport::Model as Viewport;
 ///         None
 ///     }
 ///
-///     fn view(&self) -> String {
-///         format!("{}\\n{}", self.input.view(), self.list.view())
+///     fn view(&self) -> View {
+///         View::new(format!("{}\\n{}", self.input.view(), self.list.view().content))
 ///     }
 /// }
 /// ```

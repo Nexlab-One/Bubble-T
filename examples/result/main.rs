@@ -1,7 +1,7 @@
 // A simple example that shows how to retrieve a value from a Bubble Tea
 // program after the Bubble Tea has exited.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::key::{Binding, matches_binding, new_binding, with_help, with_keys_str};
 
 const CHOICES: &[&str] = &["Taro", "Coffee", "Lychee"];
@@ -90,7 +90,7 @@ impl Model for AppModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut s = String::new();
         s.push_str("What kind of Bubble Tea would you like to order?\n\n");
 
@@ -105,14 +105,15 @@ impl Model for AppModel {
         }
         s.push_str("\n(press q to quit)\n");
 
-        s
+        let mut view = View::new(s);
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<AppModel>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

@@ -18,7 +18,7 @@
 //!
 //! ```rust
 //! use bubble_t_widgets::stopwatch::{new, Model};
-//! use bubble_t::{Model as BubbleTeaModel, Msg};
+//! use bubble_t::{Model as BubbleTeaModel, Msg, View};
 //!
 //! // Create a stopwatch with 1-second precision
 //! let mut stopwatch = new();
@@ -37,7 +37,7 @@
 //!
 //! ```rust
 //! use bubble_t_widgets::stopwatch::{new, Model as StopwatchModel};
-//! use bubble_t::{Model as BubbleTeaModel, Cmd, Msg};
+//! use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, View};
 //!
 //! struct App {
 //!     stopwatch: StopwatchModel,
@@ -58,8 +58,8 @@
 //!         self.stopwatch.update(msg)
 //!     }
 //!
-//!     fn view(&self) -> String {
-//!         format!("Elapsed time: {}", self.stopwatch.view())
+//!     fn view(&self) -> View {
+//!         View::new(format!("Elapsed time: {}", self.stopwatch.view()))
 //!     }
 //! }
 //! ```
@@ -91,7 +91,7 @@
 //! - Multiple stopwatches can run concurrently without interference
 //! - Duration formatting is optimized for common time ranges
 
-use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, tick as bubbletea_tick};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, tick as bubbletea_tick};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::time::{Duration, Instant};
 
@@ -325,7 +325,7 @@ pub struct ResetMsg {
 /// Integration with Bubble Tea:
 /// ```rust
 /// use bubble_t_widgets::stopwatch::{new, Model as StopwatchModel};
-/// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg};
+/// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, View};
 /// use std::time::Duration;
 ///
 /// struct TimerApp {
@@ -343,11 +343,11 @@ pub struct ResetMsg {
 ///         self.stopwatch.update(msg)
 ///     }
 ///
-///     fn view(&self) -> String {
-///         format!("Timer: {} ({})",
+///     fn view(&self) -> View {
+///         View::new(format!("Timer: {} ({})",
 ///             self.stopwatch.view(),
 ///             if self.stopwatch.running() { "running" } else { "stopped" }
-///         )
+///         ))
 ///     }
 /// }
 /// ```
@@ -609,7 +609,7 @@ impl Model {
     /// Using in a Bubble Tea application:
     /// ```rust
     /// use bubble_t_widgets::stopwatch::{new, Model as StopwatchModel};
-    /// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg};
+    /// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, View};
     ///
     /// struct App {
     ///     stopwatch: StopwatchModel,
@@ -622,7 +622,7 @@ impl Model {
     ///         (App { stopwatch }, Some(init_cmd))
     ///     }
     /// #   fn update(&mut self, _msg: Msg) -> Option<Cmd> { None }
-    /// #   fn view(&self) -> String { String::new() }
+    /// #   fn view(&self) -> View { View::new("") }
     /// }
     /// ```
     ///
@@ -1067,7 +1067,7 @@ impl Model {
     /// Displaying elapsed time in UI:
     /// ```rust
     /// use bubble_t_widgets::stopwatch::{new, Model as StopwatchModel};
-    /// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg};
+    /// use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, View};
     ///
     /// struct TimerDisplay {
     ///     stopwatch: StopwatchModel,
@@ -1079,8 +1079,8 @@ impl Model {
     ///     }
     /// #   fn update(&mut self, _msg: Msg) -> Option<Cmd> { None }
     ///
-    ///     fn view(&self) -> String {
-    ///         format!("Timer: {}", self.stopwatch.view())
+    ///     fn view(&self) -> View {
+    ///         View::new(format!("Timer: {}", self.stopwatch.view()))
     ///     }
     /// }
     /// ```
@@ -1224,8 +1224,8 @@ impl BubbleTeaModel for Model {
     ///
     /// Displays the stopwatch's current elapsed time in a human-readable
     /// format suitable for direct display in terminal UIs.
-    fn view(&self) -> String {
-        self.view()
+    fn view(&self) -> View {
+        View::new(self.view())
     }
 }
 

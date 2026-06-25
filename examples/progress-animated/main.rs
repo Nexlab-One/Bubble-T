@@ -17,7 +17,7 @@
 //! the custom animated progress implementation for precise control.
 
 use bubble_t::gradient::gradient_filled_segment;
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, batch, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, batch, quit, tick};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -292,15 +292,15 @@ impl Model for ProgressAnimatedModel {
         }
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         const PADDING: &str = "  "; // 2 spaces padding
 
-        format!(
+        View::new(format!(
             "\n{}{}\n\n{}Press any key to quit",
             PADDING,
             self.progress.view(),
             PADDING
-        )
+        ))
     }
 }
 

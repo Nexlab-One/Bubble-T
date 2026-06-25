@@ -22,7 +22,7 @@
 //! # impl Model for MyModel {
 //! #     fn init() -> (Self, Option<Cmd>) { (MyModel, None) }
 //! #     fn update(&mut self, _msg: Msg) -> Option<Cmd> { None }
-//! #     fn view(&self) -> String { String::new() }
+//! #     fn view(&self) -> bubble_t::View { bubble_t::View::new("") }
 //! # }
 //! async fn run_program() -> Result<(), Error> {
 //!     let program = Program::<MyModel>::builder().build()?;
@@ -99,7 +99,7 @@ use thiserror::Error;
 /// # impl Model for MyModel {
 /// #     fn init() -> (Self, Option<Cmd>) { (MyModel, None) }
 /// #     fn update(&mut self, _msg: Msg) -> Option<Cmd> { None }
-/// #     fn view(&self) -> String { String::new() }
+/// #     fn view(&self) -> bubble_t::View { bubble_t::View::new("") }
 /// # }
 /// fn create_program() -> Result<Program<MyModel>, Error> {
 ///     Program::<MyModel>::builder().build()

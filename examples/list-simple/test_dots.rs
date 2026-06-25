@@ -14,7 +14,7 @@ fn main() {
     // Test with Arabic pagination (default)
     let arabic_list = List::new(items.clone(), delegate.clone(), 50, 8);
     println!("Arabic pagination (default):");
-    println!("{}", arabic_list.view());
+    println!("{}", arabic_list.view().content);
     println!();
 
     // Test with Dots pagination
@@ -25,7 +25,7 @@ fn main() {
     dots_list.set_show_spinner(false);
 
     println!("Dots pagination (spinner off):");
-    println!("{}", dots_list.view());
+    println!("{}", dots_list.view().content);
     println!();
 
     // Verify the pagination type

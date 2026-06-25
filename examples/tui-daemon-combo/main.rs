@@ -11,7 +11,7 @@
 //! - Rolling buffer of last 5 completed tasks with emojis
 //! - Proper logging: stderr in daemon mode, discarded in TUI mode
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, batch, quit, tick};
 use clap::{Arg, Command as ClapCommand};
 use lipgloss_extras::lipgloss::{Color, Style};
 use log::{Level, LevelFilter, Log, Metadata, Record, info, warn};
@@ -168,7 +168,7 @@ impl Model for TuiDaemonModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut s = format!("\n{} Doing some work...\n\n", self.current_spinner());
 
         // Show results
@@ -194,7 +194,7 @@ impl Model for TuiDaemonModel {
 
         // Apply main style with left margin
         let main_style = Style::new().margin_left(1);
-        main_style.render(&s)
+        View::new(main_style.render(&s))
     }
 }
 

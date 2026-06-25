@@ -1,0 +1,14 @@
+[package]
+name = "cursor-color-example"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "cursor-color"
+path = "main.rs"
+
+[dependencies]
+bubble-t = { workspace = true }
+bubble-t-widgets = { workspace = true }
+lipgloss-extras = { workspace = true, features = ["full"] }
+tokio = { workspace = true }

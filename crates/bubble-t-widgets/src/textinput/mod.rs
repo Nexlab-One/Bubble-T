@@ -7,7 +7,7 @@
 //!
 //! ```rust
 //! use bubble_t_widgets::textinput::{new, Model};
-//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd};
+//! use bubble_t::{Model as BubbleTeaModel, Msg, Cmd, View};
 //!
 //! // Create a text input with default settings
 //! let mut input = new();

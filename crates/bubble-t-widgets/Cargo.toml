@@ -21,6 +21,7 @@ no-default-features = true
 [dependencies]
 bubble-t = { workspace = true }
 lipgloss-extras = { workspace = true, features = ["full"] }
+harmonica = { workspace = true }
 crossterm = { workspace = true }
 unicode-width = { workspace = true }
 fuzzy-matcher = { workspace = true }

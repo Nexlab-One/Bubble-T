@@ -10,7 +10,7 @@
 //! - Command batching for concurrent operations
 //! - Proper key handling (any key quits)
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, batch, quit, tick};
 use std::time::Duration;
 
 /// A message used to indicate that activity has occurred
@@ -119,7 +119,7 @@ impl Model for RealtimeModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut s = format!(
             "\n {} Events received: {}\n\n Press any key to exit\n",
             self.spinner_view(),
@@ -130,7 +130,7 @@ impl Model for RealtimeModel {
             s.push('\n');
         }
 
-        s
+        View::new(s)
     }
 }
 

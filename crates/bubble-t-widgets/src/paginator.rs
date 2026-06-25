@@ -5,7 +5,7 @@
 //! for handling the state and view of the pagination control itself.
 
 use crate::key::{self, KeyMap as KeyMapTrait};
-use bubble_t::{KeyMsg, Msg};
+use bubble_t::{Msg, legacy_key_msg};
 
 /// The type of pagination to display.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -165,7 +165,7 @@ impl KeyMapTrait for PaginatorKeyMap {
 ///
 /// ```rust
 /// use bubble_t_widgets::paginator::Model as Paginator;
-/// use bubble_t::{Model, Cmd, Msg};
+/// use bubble_t::{Model, Cmd, Msg, View};
 ///
 /// struct App {
 ///     paginator: Paginator,
@@ -187,15 +187,15 @@ impl KeyMapTrait for PaginatorKeyMap {
 ///         None
 ///     }
 ///
-///     fn view(&self) -> String {
+///     fn view(&self) -> View {
 ///         let (start, end) = self.paginator.get_slice_bounds(self.items.len());
 ///         let page_items: Vec<String> = self.items[start..end].to_vec();
 ///         
-///         format!(
+///         View::new(format!(
 ///             "Items:\n{}\n\nPage: {}",
 ///             page_items.join("\n"),
 ///             self.paginator.view()
-///         )
+///         ))
 ///     }
 /// }
 /// ```
@@ -734,7 +734,7 @@ impl Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::paginator::Model as Paginator;
-    /// use bubble_t::{Model, Msg};
+    /// use bubble_t::{Model, Msg, View};
     ///
     /// struct App {
     ///     paginator: Paginator,
@@ -749,14 +749,14 @@ impl Model {
     ///     
     ///     // ... other methods
     /// #   fn init() -> (Self, Option<bubble_t::Cmd>) { (Self { paginator: Paginator::new() }, None) }
-    /// #   fn view(&self) -> String { String::new() }
+    /// #   fn view(&self) -> View { View::new("") }
     /// }
     /// ```
     pub fn update(&mut self, msg: &Msg) {
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keymap.next_page.matches(key_msg) {
+        if let Some(key_msg) = legacy_key_msg(msg) {
+            if self.keymap.next_page.matches(&key_msg) {
                 self.next_page();
-            } else if self.keymap.prev_page.matches(key_msg) {
+            } else if self.keymap.prev_page.matches(&key_msg) {
                 self.prev_page();
             }
         }

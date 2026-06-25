@@ -6,7 +6,7 @@
 //! This example shows a simple loading spinner that runs forever until
 //! the user quits, demonstrating basic spinner functionality.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit, tick};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
@@ -109,10 +109,10 @@ impl Model for SpinnerModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Handle errors first (matching Go version)
         if let Some(error) = &self.err {
-            return error.clone();
+            return View::new(error.clone());
         }
 
         // Main view - matching Go version format exactly
@@ -122,10 +122,10 @@ impl Model for SpinnerModel {
         );
 
         if self.quitting {
-            return str + "\n";
+            return View::new(str + "\n");
         }
 
-        str
+        View::new(str)
     }
 }
 

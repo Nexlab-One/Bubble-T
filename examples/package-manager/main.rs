@@ -23,7 +23,7 @@
 
 // bubble-t core imports for MVU pattern
 use bubble_t::gradient::gradient_filled_segment; // Built-in gradient helper for progress bars
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, batch, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, batch, quit, tick};
 
 // crossterm for keyboard input handling
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -428,7 +428,7 @@ impl Model for PackageManagerModel {
     /// Instead of printing messages above the UI, we render everything
     /// as one cohesive view. This makes the UI more predictable and easier
     /// to test since all rendering is in one place.
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let n = self.packages.len();
         let w = format!("{}", n).len();
 
@@ -444,7 +444,7 @@ impl Model for PackageManagerModel {
 
             // Add done message with margin (matching Go's doneStyle)
             result.push_str(&format!("\nDone! Installed {} packages.\n", n));
-            return result;
+            return View::new(result);
         }
 
         // Build the view with completed packages list above current installation
@@ -504,7 +504,7 @@ impl Model for PackageManagerModel {
             spin, info_text, gap, prog, pkg_count
         ));
 
-        result
+        View::new(result)
     }
 }
 

@@ -4,10 +4,7 @@
 //! It toggles between the inline screen and the alternate screen with the
 //! spacebar, supports suspend/resume with Ctrl+Z, and quits with q/esc.
 
-use bubble_t::{
-    Cmd, KeyMsg, Model, Msg, Program, QuitMsg, ResumeMsg, enter_alt_screen, exit_alt_screen, quit,
-    suspend,
-};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, QuitMsg, ResumeMsg, View, quit, suspend};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use lipgloss_extras::lipgloss::{Color, Style};
 
@@ -93,14 +90,8 @@ impl Model for AltScreenModel {
             }
 
             if self.keys.toggle.matches(key) {
-                // Toggle alt screen
-                let cmd = if self.altscreen {
-                    exit_alt_screen()
-                } else {
-                    enter_alt_screen()
-                };
                 self.altscreen = !self.altscreen;
-                return Some(cmd);
+                return None;
             }
         }
 
@@ -112,12 +103,12 @@ impl Model for AltScreenModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.suspending {
-            return String::new();
+            return View::new("");
         }
         if self.quitting {
-            return "Bye!\n".to_string();
+            return View::new("Bye!\n");
         }
 
         // Create lipgloss-extras styles matching the Go example
@@ -133,11 +124,13 @@ impl Model for AltScreenModel {
             " inline mode "
         };
 
-        format!(
+        let mut view = View::new(format!(
             "\n\n  You're in {}\n\n\n{}\n",
             keyword_style.render(mode),
             help_style.render("  space: switch modes • ctrl-z: suspend • q: exit")
-        )
+        ));
+        view.alt_screen = self.altscreen;
+        view
     }
 }
 
@@ -150,7 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let program = Program::<AltScreenModel>::builder()
         .signal_handler(true)
-        .alt_screen(false) // start in inline mode like the Go example
+        // start in inline mode like the Go example
         .build()?;
 
     program.run().await?;

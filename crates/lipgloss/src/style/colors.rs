@@ -39,7 +39,6 @@
 //! ```
 
 use crate::color::TerminalColor;
-use crate::renderer::default_renderer;
 use crate::style::{Style, properties::*};
 use crate::utils::which_sides_color;
 
@@ -74,7 +73,7 @@ impl Style {
     /// let style = Style::new().foreground("196"); // Bright red
     /// ```
     pub fn foreground<C: TerminalColor>(mut self, color: C) -> Self {
-        self.fg_color = Some(color.token(default_renderer()));
+        self.fg_color = Some(color.token(&self.color_output()));
         self.set_prop(FOREGROUND_KEY);
         self
     }
@@ -108,7 +107,7 @@ impl Style {
     /// let style = Style::new().background("#2E3440");
     /// ```
     pub fn background<C: TerminalColor>(mut self, color: C) -> Self {
-        self.bg_color = Some(color.token(default_renderer()));
+        self.bg_color = Some(color.token(&self.color_output()));
         self.set_prop(BACKGROUND_KEY);
         self
     }
@@ -142,7 +141,7 @@ impl Style {
     /// [`border_top`]: Self::border_top
     /// [`border`]: Self::border
     pub fn border_top_foreground<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_top_fg_color = Some(c.token(default_renderer()));
+        self.border_top_fg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_TOP_FOREGROUND_KEY);
         self
     }
@@ -175,7 +174,7 @@ impl Style {
     /// [`border_right`]: Self::border_right
     /// [`border`]: Self::border
     pub fn border_right_foreground<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_right_fg_color = Some(c.token(default_renderer()));
+        self.border_right_fg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_RIGHT_FOREGROUND_KEY);
         self
     }
@@ -208,7 +207,7 @@ impl Style {
     /// [`border_bottom`]: Self::border_bottom
     /// [`border`]: Self::border
     pub fn border_bottom_foreground<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_bottom_fg_color = Some(c.token(default_renderer()));
+        self.border_bottom_fg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_BOTTOM_FOREGROUND_KEY);
         self
     }
@@ -241,7 +240,7 @@ impl Style {
     /// [`border_left`]: Self::border_left
     /// [`border`]: Self::border
     pub fn border_left_foreground<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_left_fg_color = Some(c.token(default_renderer()));
+        self.border_left_fg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_LEFT_FOREGROUND_KEY);
         self
     }
@@ -274,7 +273,7 @@ impl Style {
     /// [`border_top`]: Self::border_top
     /// [`border`]: Self::border
     pub fn border_top_background<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_top_bg_color = Some(c.token(default_renderer()));
+        self.border_top_bg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_TOP_BACKGROUND_KEY);
         self
     }
@@ -307,7 +306,7 @@ impl Style {
     /// [`border_right`]: Self::border_right
     /// [`border`]: Self::border
     pub fn border_right_background<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_right_bg_color = Some(c.token(default_renderer()));
+        self.border_right_bg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_RIGHT_BACKGROUND_KEY);
         self
     }
@@ -340,7 +339,7 @@ impl Style {
     /// [`border_bottom`]: Self::border_bottom
     /// [`border`]: Self::border
     pub fn border_bottom_background<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_bottom_bg_color = Some(c.token(default_renderer()));
+        self.border_bottom_bg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_BOTTOM_BACKGROUND_KEY);
         self
     }
@@ -373,7 +372,7 @@ impl Style {
     /// [`border_left`]: Self::border_left
     /// [`border`]: Self::border
     pub fn border_left_background<C: TerminalColor>(mut self, c: C) -> Self {
-        self.border_left_bg_color = Some(c.token(default_renderer()));
+        self.border_left_bg_color = Some(c.token(&self.color_output()));
         self.set_prop(BORDER_LEFT_BACKGROUND_KEY);
         self
     }
@@ -489,7 +488,7 @@ impl Style {
     /// [`margin`]: Self::margin
     /// [`margin_top`]: Self::margin_top
     pub fn margin_background<C: TerminalColor>(mut self, c: C) -> Self {
-        self.margin_bg_color = Some(c.token(default_renderer()));
+        self.margin_bg_color = Some(c.token(&self.color_output()));
         self.set_prop(MARGIN_BACKGROUND_KEY);
         self
     }

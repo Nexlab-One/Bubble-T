@@ -14,7 +14,7 @@
 //! similar to how the original Go example was written before the Bubbles
 //! progress component was available.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit, tick};
 use crossterm::event::{KeyCode, KeyModifiers};
 use lipgloss_extras::lipgloss::{Color, Style};
 use std::time::Duration;
@@ -92,9 +92,9 @@ impl Model for ViewsModel {
         }
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
-            return "\n  See you later!\n\n".to_string();
+            return View::new("\n  See you later!\n\n");
         }
 
         let content = if !self.chosen {
@@ -105,7 +105,7 @@ impl Model for ViewsModel {
 
         // Apply main style with left margin
         let main_style = Style::new().margin_left(2);
-        main_style.render(&format!("\n{}\n\n", content))
+        View::new(main_style.render(&format!("\n{}\n\n", content)))
     }
 }
 

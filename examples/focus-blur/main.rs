@@ -1,4 +1,4 @@
-use bubble_t::{BlurMsg, Cmd, FocusMsg, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{BlurMsg, Cmd, FocusMsg, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 
 /// Key bindings for the focus-blur example
@@ -58,7 +58,7 @@ impl Model for AppModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut s = String::from("Hi. Focus report is currently ");
         if self.reporting {
             s.push_str("enabled");
@@ -76,14 +76,16 @@ impl Model for AppModel {
         }
 
         s.push_str("\n\nTo quit sooner press ctrl-c, or t to toggle focus reporting...\n");
-        s
+        let mut view = View::new(s);
+        view.report_focus = self.reporting;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<AppModel>::builder()
-        .report_focus(true) // Enable focus reporting
+        // Enable focus reporting
         .build()?;
 
     program.run().await?;

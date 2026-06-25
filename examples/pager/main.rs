@@ -18,8 +18,8 @@
 //! - **Styled Text Rendering**: Combining borders, padding, and content
 //!
 //! ### 💻 **Program Configuration**
-//! - **Alternate Screen Buffer**: Full-screen TUI mode with `.alt_screen()`
-//! - **Mouse Support**: Enabling mouse wheel scrolling with `.mouse_motion()`
+//! - **Alternate Screen Buffer**: Full-screen TUI mode with declarative `View::alt_screen`
+//! - **Mouse Support**: Enabling mouse wheel scrolling with `View::mouse_mode`
 //! - **File I/O Integration**: Loading external content at startup
 //! - **Error Handling**: Graceful handling of missing files
 //!
@@ -66,7 +66,8 @@
 
 // bubble-t core imports for MVU pattern
 use bubble_t::{
-    KeyMsg, Model as BubbleTeaModel, MouseMotion, Msg, Program, WindowSizeMsg, quit, window_size,
+    KeyMsg, Model as BubbleTeaModel, MouseMode, Msg, Program, View, WindowSizeMsg, quit,
+    window_size,
 };
 
 // bubble-t-widgets for viewport component
@@ -100,7 +101,7 @@ use std::fs;
 // ### 2. Always use lipgloss layout functions for alignment
 // ```rust
 // // ❌ WRONG - doesn't handle terminal alignment properly
-// let result = format!("{}{}", left_text, right_text);
+// let result = View::new(format!("{}{}", left_text, right_text);
 //
 // // ✅ CORRECT - handles proper terminal layout
 // let result = join_horizontal(CENTER, &[&left_text, &right_text]);
@@ -478,18 +479,20 @@ impl BubbleTeaModel for PagerModel {
     /// - Handle loading state gracefully
     /// - Combine header, content, and footer
     /// - Use newlines for proper vertical spacing
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if !self.ready {
-            return "\n  Initializing...".to_string();
+            return View::new("\n  Initializing...");
         }
 
-        // Compose the full interface: header + viewport + footer
-        format!(
+        let mut view = View::new(format!(
             "{}\n{}\n{}",
             self.header_view(),
             self.viewport_view(),
             self.footer_view()
-        )
+        ));
+        view.alt_screen = true;
+        view.mouse_mode = MouseMode::CellMotion;
+        view
     }
 }
 
@@ -501,12 +504,11 @@ impl BubbleTeaModel for PagerModel {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ## bubble-t Pattern: Full-Screen Pager Configuration
     // This demonstrates the typical setup for a document viewer:
-    // - .alt_screen(true): Use alternate screen buffer (fullscreen)
-    // - .mouse_motion(): Enable mouse wheel scrolling
+    // - declarative `View::alt_screen` for alternate screen buffer (fullscreen)
+    // - declarative `View::mouse_mode` for mouse wheel scrolling
     // This matches the Go version's WithAltScreen() and WithMouseCellMotion()
     let program = Program::<PagerModel>::builder()
-        .alt_screen(true) // Enable alternate screen buffer
-        .mouse_motion(MouseMotion::Cell) // Enable mouse wheel support
+        // Enable alternate screen buffer
         .build()?;
 
     // Run the program and handle any errors

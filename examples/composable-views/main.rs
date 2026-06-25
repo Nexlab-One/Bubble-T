@@ -11,7 +11,7 @@
 //! with multiple styles. Users can switch focus between views and interact with
 //! each component independently.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, batch, quit, tick};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, batch, quit, tick};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use bubble_t_widgets::timer;
 
@@ -260,7 +260,7 @@ impl Model for MainModel {
         }
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Format timer display to match Go example (show as MM:SS or checkmark when done)
         let timer_display = if self.timer_model.timedout() {
             "✓".to_string()
@@ -295,7 +295,9 @@ impl Model for MainModel {
             self.current_focused_model()
         ));
 
-        format!("{}\n{}\n", views, help)
+        let mut view = View::new(format!("{}\n{}\n", views, help));
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -303,7 +305,7 @@ impl Model for MainModel {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create and run the program
     let program = Program::<MainModel>::builder()
-        .alt_screen(false) // Match Go version - no alternate screen
+        // Match Go version - no alternate screen
         .signal_handler(true) // Enable Ctrl+C handling
         .build()?;
 

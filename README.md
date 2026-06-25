@@ -18,7 +18,12 @@ This repository is a single Cargo workspace containing the full Rust Bubble Tea 
 |-------|------|---------|
 | **bubble-t** | `crates/bubble-t` | Core MVU framework with async runtime |
 | **bubble-t-widgets** | `crates/bubble-t-widgets` | Pre-built UI components (cursor, file picker, help, list, progress, spinner, table, textarea, textinput, timer, viewport, and more) |
-| **lipgloss** | `crates/lipgloss` | Terminal styling (colors, borders, layouts) |
+| **ansi** | `crates/ansi` | ANSI/OSC escape builders + incremental parser (port of `x/ansi`) |
+| **cellbuf** | `crates/cellbuf` | Width-aware styled cell grid + screen diff |
+| **colorprofile** | `crates/colorprofile` | Terminal color profile detection + downsampling |
+| **term** | `crates/term` | Cross-platform raw mode, TTY, and size |
+| **harmonica** | `crates/harmonica` | Spring animations (progress widget) |
+| **lipgloss** | `crates/lipgloss` | Terminal styling, compositing (`Canvas`/`Compositor`), `OutputContext` |
 | **lipgloss-list** | `crates/lipgloss-list` | Styled vertical lists |
 | **lipgloss-table** | `crates/lipgloss-table` | Styled tables |
 | **lipgloss-tree** | `crates/lipgloss-tree` | Tree diagrams |
@@ -68,7 +73,9 @@ impl Model for App {
         (Self { count: 0 }, None)
     }
     fn update(&mut self, _msg: Msg) -> Option<Cmd> { None }
-    fn view(&self) -> String { format!("count: {}", self.count) }
+    fn view(&self) -> View {
+        View::new(format!("count: {}", self.count))
+    }
 }
 
 #[tokio::main]
@@ -80,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Examples
 
-47 examples mirror the upstream Go Bubble Tea gallery. See [examples/README.md](examples/README.md).
+50 examples mirror the upstream Go Bubble Tea gallery, including three v2-specific demos (`capability`, `cursor-color`, `keyboard-enhancements`). See [examples/README.md](examples/README.md).
 
 ```bash
 cd examples/simple

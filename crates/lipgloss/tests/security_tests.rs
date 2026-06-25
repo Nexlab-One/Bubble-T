@@ -387,7 +387,7 @@ fn test_string_repeat_replacement_coverage() {
 
     // Test with whitespace rendering
     use lipgloss::whitespace::new_whitespace;
-    let ws = new_whitespace(lipgloss::renderer::default_renderer(), &[]);
+    let ws = new_whitespace(&lipgloss::output::default_output(), &[]);
     let ws_result = ws.render(50); // Should use safe_repeat internally
     assert_eq!(ws_result.len(), 50);
 }

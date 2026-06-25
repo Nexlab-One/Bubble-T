@@ -1,0 +1,15 @@
+[package]
+name = "capability-example"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "capability"
+path = "main.rs"
+
+[dependencies]
+bubble-t = { workspace = true }
+bubble-t-widgets = { workspace = true }
+crossterm = { workspace = true }
+lipgloss-extras = { workspace = true, features = ["full"] }
+tokio = { workspace = true }

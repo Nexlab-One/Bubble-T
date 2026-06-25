@@ -4,7 +4,7 @@
 //! used for both input handling and generating help views. It offers a type-safe
 //! alternative to string-based key matching.
 
-use bubble_t::KeyMsg;
+use bubble_t::{KeyMsg, legacy_key_msg};
 use crossterm::event::{KeyCode, KeyModifiers};
 
 /// Represents a specific key press, combining a `KeyCode` and `KeyModifiers`.
@@ -492,6 +492,13 @@ impl Binding {
         false
     }
 
+    /// Checks whether a message matches this binding (v2 [`KeyPressMsg`] or legacy [`KeyMsg`]).
+    pub fn matches_msg(&self, msg: &bubble_t::Msg) -> bool {
+        legacy_key_msg(msg)
+            .map(|key| self.matches(&key))
+            .unwrap_or(false)
+    }
+
     /// A convenience function that checks if a `KeyMsg` matches any of the provided bindings.
     ///
     /// # Arguments
@@ -614,6 +621,13 @@ pub fn matches(key_msg: &KeyMsg, bindings: &[&Binding]) -> bool {
         }
     }
     false
+}
+
+/// Checks if a message matches any of the given bindings (v2 or legacy key events).
+pub fn matches_msg(msg: &bubble_t::Msg, bindings: &[&Binding]) -> bool {
+    legacy_key_msg(msg)
+        .map(|key| matches(&key, bindings))
+        .unwrap_or(false)
 }
 
 /// Creates a new binding from options - Go compatibility function.

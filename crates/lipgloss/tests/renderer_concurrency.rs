@@ -1,11 +1,11 @@
 use std::sync::{Arc, Barrier};
 use std::thread;
 
-use lipgloss::renderer::*;
+use lipgloss::output::*;
 
 #[test]
 fn concurrent_reads_and_writes_on_renderer() {
-    let mut base = Renderer::new();
+    let mut base = OutputContext::default();
     base.set_color_profile(ColorProfileKind::ANSI256);
     base.set_has_dark_background(true);
 
@@ -20,7 +20,7 @@ fn concurrent_reads_and_writes_on_renderer() {
         handles.push(thread::spawn(move || {
             // Start together
             b.wait();
-            // Concurrent read-only access on the same Renderer instance
+            // Concurrent read-only access on the same OutputContext instance
             for _ in 0..20_000 {
                 let _ = r.color_profile();
                 let _ = r.has_dark_background();
@@ -36,7 +36,7 @@ fn concurrent_reads_and_writes_on_renderer() {
 #[test]
 fn concurrent_global_default_mutation_and_reads() {
     // Ensure default exists
-    let _ = default_renderer();
+    let _ = default_output();
 
     let threads = 6;
     let barrier = Arc::new(Barrier::new(threads));
@@ -48,15 +48,15 @@ fn concurrent_global_default_mutation_and_reads() {
             b.wait();
             for j in 0..20_000 {
                 if (i + j) % 11 == 0 {
-                    // Replace default renderer occasionally
-                    let mut r = Renderer::new();
+                    // Replace default OutputContext occasionally
+                    let mut r = OutputContext::default();
                     if j.is_multiple_of(2) {
                         r.set_color_profile(ColorProfileKind::TrueColor);
                     } else {
                         r.set_color_profile(ColorProfileKind::NoColor);
                     }
                     r.set_has_dark_background((i + j) % 5 != 0);
-                    set_default_renderer(r);
+                    set_default_output(r);
                 } else if (i + j) % 5 == 0 {
                     // Global setter paths
                     set_has_dark_background(((i + j) % 3) == 0);

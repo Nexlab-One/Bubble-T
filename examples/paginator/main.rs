@@ -2,10 +2,13 @@
 //
 // A simple program demonstrating the paginator component from the bubble-t-widgets library.
 
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, window_size};
+use bubble_t::{
+    Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, View, WindowSizeMsg, window_size,
+};
 use bubble_t_widgets::paginator::{Model as Paginator, Type};
 use crossterm::event::{KeyCode, KeyModifiers};
-use lipgloss_extras::lipgloss::{Color, ColorProfileKind, Style, renderer};
+use lipgloss_extras::lipgloss::output::set_color_profile;
+use lipgloss_extras::lipgloss::{Color, ColorProfileKind, Style};
 
 // Synthetic message used to trigger the initial render immediately after startup.
 struct InitRenderMsg;
@@ -97,7 +100,7 @@ impl BubbleTeaModel for Model {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let mut output = String::new();
 
         // Only show title if we have enough vertical space
@@ -136,7 +139,9 @@ impl BubbleTeaModel for Model {
             output.push_str("\n\n  h/l ←/→ page • q: quit");
         }
 
-        output
+        let mut view = View::new(output);
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -144,13 +149,10 @@ impl BubbleTeaModel for Model {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Force TrueColor mode FIRST to ensure proper color rendering
     // Must be set before any lipgloss styling operations
-    renderer::set_color_profile(ColorProfileKind::TrueColor);
+    set_color_profile(ColorProfileKind::TrueColor);
 
     // Create program (no alt screen to match Go version behavior)
-    let program = Program::<Model>::builder()
-        .alt_screen(false)
-        .signal_handler(true)
-        .build()?;
+    let program = Program::<Model>::builder().signal_handler(true).build()?;
 
     // Run the program
     let _result = program.run().await?;

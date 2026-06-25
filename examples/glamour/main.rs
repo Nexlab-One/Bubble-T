@@ -1,7 +1,7 @@
 //! Glamour Example
 //!
 //! TODO: This is a workaround implementation using manual styling. When a Rust equivalent
-//! of the `glamour` markdown renderer becomes available, we should revisit this example
+//! of the `glamour` markdown OutputContext becomes available, we should revisit this example
 //! to use proper markdown parsing and rendering instead of manual formatting.
 //!
 //! This example demonstrates how to use a viewport widget from bubble-t-widgets
@@ -17,7 +17,7 @@
 //! markdown formatting with colors since Rust doesn't have a direct glamour equivalent.
 //! We simulate glamour rendering by applying colors and styling to different markdown elements.
 
-use bubble_t::{KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::{
     key::{Binding, new_binding, with_help, with_keys_str},
     viewport,
@@ -250,10 +250,10 @@ impl Model for GlamourModel {
         self.viewport.update(msg)
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Apply styling to the viewport and combine with help text
-        let styled_viewport = self.viewport_style.render(&self.viewport.view());
-        format!("{}{}", styled_viewport, self.help_view())
+        let styled_viewport = self.viewport_style.render(&self.viewport.view().content);
+        View::new(format!("{}{}", styled_viewport, self.help_view()))
     }
 }
 

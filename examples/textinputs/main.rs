@@ -3,7 +3,7 @@
 //! Mirrors the Go Bubbles example with three inputs and a submit button.
 
 use bubble_t::command::batch;
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::{cursor, key, textinput};
 use lipgloss_extras::lipgloss::{Color, Style};
 
@@ -190,7 +190,7 @@ impl Model for ModelTextInputs {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let focused_style = Style::new().foreground(Color::from("205"));
         let blurred_style = Style::new().foreground(Color::from("240"));
         let help_style = blurred_style.clone();
@@ -225,14 +225,15 @@ impl Model for ModelTextInputs {
         out.push_str(&cursor_mode_help_style.render(mode_label));
         out.push_str(&help_style.render(" (ctrl+r to change style)"));
 
-        out
+        let mut view = View::new(out);
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<ModelTextInputs>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
     let _ = program.run().await?;

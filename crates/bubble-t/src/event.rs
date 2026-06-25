@@ -310,16 +310,18 @@ pub fn next_timer_id() -> u64 {
     TIMER_ID_COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
-/// A message indicating a keyboard input event.
+/// Mouse event routed through a compositor layer hit test.
 #[derive(Debug, Clone)]
-pub struct KeyMsg {
-    /// The `crossterm::event::KeyCode` representing the key pressed.
-    pub key: crossterm::event::KeyCode,
-    /// The `crossterm::event::KeyModifiers` active during the key press.
-    pub modifiers: crossterm::event::KeyModifiers,
+pub struct LayerMouseMsg {
+    /// Id of the hit layer (from [`lipgloss::Layer::id`]).
+    pub layer_id: String,
+    /// Layer bounds `(x, y, width, height)`.
+    pub bounds: (i32, i32, i32, i32),
+    /// Underlying mouse event.
+    pub mouse: MouseMsg,
 }
 
-/// A message indicating a mouse input event.
+/// A message indicating a mouse input event (legacy v1 shape).
 #[derive(Debug, Clone)]
 pub struct MouseMsg {
     /// The column coordinate of the mouse event.
@@ -331,6 +333,134 @@ pub struct MouseMsg {
     /// The `crossterm::event::KeyModifiers` active during the mouse event.
     pub modifiers: crossterm::event::KeyModifiers,
 }
+
+/// Mouse button identifiers (v2, X11-style).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MouseButton {
+    /// No button.
+    #[default]
+    None,
+    /// Left button.
+    Left,
+    /// Middle button (scroll wheel click).
+    Middle,
+    /// Right button.
+    Right,
+    /// Scroll wheel up.
+    WheelUp,
+    /// Scroll wheel down.
+    WheelDown,
+    /// Scroll wheel left.
+    WheelLeft,
+    /// Scroll wheel right.
+    WheelRight,
+    /// Browser back button.
+    Backward,
+    /// Browser forward button.
+    Forward,
+}
+
+/// Mouse event payload shared by v2 mouse message types.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Mouse {
+    /// Zero-based column.
+    pub x: u16,
+    /// Zero-based row.
+    pub y: u16,
+    /// Button involved in the event.
+    pub button: MouseButton,
+    /// Modifier keys held during the event.
+    pub r#mod: crate::key::KeyMod,
+}
+
+impl Mouse {
+    /// Converts to the legacy [`MouseMsg`] shape.
+    pub fn to_legacy(&self) -> MouseMsg {
+        use crossterm::event::{MouseButton as CMouseButton, MouseEventKind};
+        let kind = match self.button {
+            MouseButton::Left => MouseEventKind::Down(CMouseButton::Left),
+            MouseButton::Middle => MouseEventKind::Down(CMouseButton::Middle),
+            MouseButton::Right => MouseEventKind::Down(CMouseButton::Right),
+            MouseButton::WheelUp => MouseEventKind::ScrollUp,
+            MouseButton::WheelDown => MouseEventKind::ScrollDown,
+            MouseButton::WheelLeft => MouseEventKind::ScrollLeft,
+            MouseButton::WheelRight => MouseEventKind::ScrollRight,
+            MouseButton::Backward | MouseButton::Forward => MouseEventKind::Moved,
+            MouseButton::None => MouseEventKind::Moved,
+        };
+        MouseMsg {
+            x: self.x,
+            y: self.y,
+            button: kind,
+            modifiers: self.r#mod.to_crossterm(),
+        }
+    }
+}
+
+/// v2 mouse click message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MouseClickMsg(pub Mouse);
+
+impl MouseClickMsg {
+    /// Returns the underlying mouse event.
+    pub fn mouse(&self) -> &Mouse {
+        &self.0
+    }
+}
+
+/// v2 mouse release message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MouseReleaseMsg(pub Mouse);
+
+impl MouseReleaseMsg {
+    /// Returns the underlying mouse event.
+    pub fn mouse(&self) -> &Mouse {
+        &self.0
+    }
+}
+
+/// v2 mouse wheel message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MouseWheelMsg(pub Mouse);
+
+impl MouseWheelMsg {
+    /// Returns the underlying mouse event.
+    pub fn mouse(&self) -> &Mouse {
+        &self.0
+    }
+}
+
+/// v2 mouse motion message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MouseMotionMsg(pub Mouse);
+
+impl MouseMotionMsg {
+    /// Returns the underlying mouse event.
+    pub fn mouse(&self) -> &Mouse {
+        &self.0
+    }
+}
+
+/// Union of v2 mouse message variants.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MouseEventMsg {
+    /// Button press.
+    Click(MouseClickMsg),
+    /// Button release.
+    Release(MouseReleaseMsg),
+    /// Scroll wheel.
+    Wheel(MouseWheelMsg),
+    /// Pointer motion.
+    Motion(MouseMotionMsg),
+}
+
+/// Bracketed-paste start marker (v2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PasteStartMsg;
+
+/// Bracketed-paste end marker (v2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PasteEndMsg;
 
 /// A message indicating that text was pasted into the terminal (bracketed paste).
 ///
@@ -613,3 +743,208 @@ pub struct CancelTimerMsg {
 /// - Error recovery scenarios
 #[derive(Debug, Clone)]
 pub struct CancelAllTimersMsg;
+
+// --- v2 terminal query / response messages ---
+
+/// Terminal color profile detected at startup or upgraded via capability query.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ColorProfileMsg(pub colorprofile::Profile);
+
+/// Environment variables visible to the program (useful over SSH).
+#[derive(Debug, Clone, Default)]
+pub struct EnvMsg(pub std::collections::HashMap<String, String>);
+
+impl EnvMsg {
+    /// Returns the value of `key`, or an empty string when absent.
+    pub fn getenv(&self, key: &str) -> String {
+        self.0.get(key).cloned().unwrap_or_default()
+    }
+
+    /// Returns `(value, true)` when `key` is present in the environment map.
+    pub fn lookup_env(&self, key: &str) -> (String, bool) {
+        match self.0.get(key) {
+            Some(v) => (v.clone(), true),
+            None => (String::new(), false),
+        }
+    }
+}
+
+/// OSC 52 clipboard read response.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClipboardMsg {
+    /// Pasted or read clipboard text.
+    pub content: String,
+    /// Selection byte: `c` system clipboard, `p` primary selection.
+    pub selection: char,
+}
+
+/// Default terminal foreground color (OSC 10 response).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ForegroundColorMsg(pub ansi::color::RgbColor);
+
+impl ForegroundColorMsg {
+    /// Returns whether the color reads as dark using relative luminance.
+    pub fn is_dark(&self) -> bool {
+        color_is_dark(self.0)
+    }
+}
+
+/// Default terminal background color (OSC 11 response).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BackgroundColorMsg(pub ansi::color::RgbColor);
+
+impl BackgroundColorMsg {
+    /// Returns whether the color reads as dark using relative luminance.
+    pub fn is_dark(&self) -> bool {
+        color_is_dark(self.0)
+    }
+}
+
+/// Terminal cursor color (OSC 12 response).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CursorColorMsg(pub ansi::color::RgbColor);
+
+impl CursorColorMsg {
+    /// Returns whether the color reads as dark using relative luminance.
+    pub fn is_dark(&self) -> bool {
+        color_is_dark(self.0)
+    }
+}
+
+/// Returns whether the terminal background is dark (convenience for adaptive styling).
+pub fn has_dark_background(msg: &BackgroundColorMsg) -> bool {
+    msg.is_dark()
+}
+
+/// Cursor position report (CPR / DECXCPR response).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CursorPositionMsg {
+    /// Zero-based column.
+    pub x: u16,
+    /// Zero-based row.
+    pub y: u16,
+}
+
+/// Terminal name/version from XTVERSION.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TerminalVersionMsg {
+    /// Reported terminal name/version string.
+    pub name: String,
+}
+
+/// Termcap/Terminfo capability response (XTGETTCAP).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapabilityMsg {
+    /// Capability payload (e.g. `RGB`, `Tc`).
+    pub content: String,
+}
+
+/// DEC mode report response (DECRPM).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ModeReportMsg {
+    /// Reported mode.
+    pub mode: ansi::mode::Mode,
+    /// Reported setting.
+    pub value: ansi::mode::ModeSetting,
+}
+
+/// Kitty keyboard enhancement flags reported by the terminal (`CSI ? u`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct KeyboardEnhancementsMsg {
+    /// Bitmask of enabled Kitty keyboard features.
+    pub flags: i32,
+}
+
+/// Terminal light/dark preference report (`CSI ? 997 ; mode n`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LightDarkMsg {
+    /// `true` when the terminal reports dark mode.
+    pub dark: bool,
+}
+
+impl LightDarkMsg {
+    /// Returns whether the terminal prefers a dark color scheme.
+    pub fn is_dark(self) -> bool {
+        self.dark
+    }
+}
+
+impl KeyboardEnhancementsMsg {
+    /// Returns whether key disambiguation is supported (any non-zero flags).
+    pub fn supports_key_disambiguation(self) -> bool {
+        self.flags > 0
+    }
+
+    /// Returns whether press/release/repeat events are supported.
+    pub fn supports_event_types(self) -> bool {
+        self.flags & ansi::kitty::KITTY_REPORT_EVENT_TYPES != 0
+    }
+
+    /// Returns whether alternate key codes are reported.
+    pub fn supports_alternate_keys(self) -> bool {
+        self.flags & ansi::kitty::KITTY_REPORT_ALTERNATE_KEYS != 0
+    }
+
+    /// Returns whether all keys are reported as escape codes.
+    pub fn supports_all_keys_as_escape_codes(self) -> bool {
+        self.flags & ansi::kitty::KITTY_REPORT_ALL_KEYS_AS_ESCAPE_CODES != 0
+    }
+
+    /// Returns whether associated text is reported with key events.
+    pub fn supports_associated_text(self) -> bool {
+        self.flags & ansi::kitty::KITTY_REPORT_ASSOCIATED_KEYS != 0
+    }
+}
+
+// --- Internal terminal command messages (handled by the program runtime) ---
+
+/// Writes raw escape data to the terminal without processing.
+#[derive(Debug, Clone)]
+pub struct RawCmdMsg(pub String);
+
+/// Requests cursor position (CPR).
+#[derive(Debug, Clone, Copy)]
+pub struct RequestCursorPositionCmdMsg;
+
+/// Requests default foreground color (OSC 10 query).
+#[derive(Debug, Clone, Copy)]
+pub struct RequestForegroundColorCmdMsg;
+
+/// Requests default background color (OSC 11 query).
+#[derive(Debug, Clone, Copy)]
+pub struct RequestBackgroundColorCmdMsg;
+
+/// Requests cursor color (OSC 12 query).
+#[derive(Debug, Clone, Copy)]
+pub struct RequestCursorColorCmdMsg;
+
+/// Requests terminal version (XTVERSION).
+#[derive(Debug, Clone, Copy)]
+pub struct RequestTerminalVersionCmdMsg;
+
+/// Requests a terminfo capability (XTGETTCAP).
+#[derive(Debug, Clone)]
+pub struct RequestCapabilityCmdMsg(pub String);
+
+/// Sets the system clipboard via OSC 52.
+#[derive(Debug, Clone)]
+pub struct SetClipboardCmdMsg(pub String);
+
+/// Reads the system clipboard via OSC 52.
+#[derive(Debug, Clone, Copy)]
+pub struct ReadClipboardCmdMsg;
+
+/// Sets the primary selection clipboard via OSC 52.
+#[derive(Debug, Clone)]
+pub struct SetPrimaryClipboardCmdMsg(pub String);
+
+/// Reads the primary selection clipboard via OSC 52.
+#[derive(Debug, Clone, Copy)]
+pub struct ReadPrimaryClipboardCmdMsg;
+
+fn color_is_dark(c: ansi::color::RgbColor) -> bool {
+    let r = f64::from(c.r);
+    let g = f64::from(c.g);
+    let b = f64::from(c.b);
+    (0.299 * r + 0.587 * g + 0.114 * b) / 255.0 < 0.5
+}

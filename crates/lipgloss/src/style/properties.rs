@@ -329,6 +329,12 @@ pub(crate) const TAB_WIDTH_KEY: PropKey = 1 << 41;
 /// This function will be applied to the content during rendering.
 pub(crate) const TRANSFORM_KEY: PropKey = 1 << 42;
 
+/// Property key for OSC 8 hyperlinks.
+pub(crate) const HYPERLINK_KEY: PropKey = 1 << 43;
+
+/// Property key for underline style variants (SGR 4:n).
+pub(crate) const UNDERLINE_STYLE_KEY: PropKey = 1 << 44;
+
 // Default values - These define standard default values for properties
 
 /// Default tab width in characters.

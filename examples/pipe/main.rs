@@ -3,7 +3,7 @@
 //! Port of Bubble Tea's `pipe` example. This demonstrates how to pipe data into
 //! a Bubble Tea application and handle non-TTY input scenarios.
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 use bubble_t_widgets::key::{Binding, new_binding, with_help, with_keys_str};
 use bubble_t_widgets::textinput;
 use std::io::{self, Read};
@@ -79,15 +79,15 @@ impl Model for PipeModel {
         self.user_input.update(msg)
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
-            return String::new();
+            return View::new("");
         }
 
-        format!(
+        View::new(format!(
             "\nYou piped in: {}\n\nPress ^C to exit",
             self.user_input.view()
-        )
+        ))
     }
 }
 
@@ -111,7 +111,7 @@ fn read_piped_input() -> Result<String, io::Error> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<PipeModel>::builder()
-        .alt_screen(false) // Don't use alt screen for pipe example
+        // Don't use alt screen for pipe example
         .signal_handler(true)
         .build()?;
 

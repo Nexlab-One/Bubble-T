@@ -14,7 +14,7 @@
 //! between, with each tab displaying unique content in a connected window below.
 
 // Core bubble-t imports for the Model-View-Update architecture
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit};
 
 // Crossterm for keyboard input handling
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -275,7 +275,7 @@ impl Model for TabModel {
     /// │                                                            │
     /// └────────────────────────────────────────────────────────────┘
     /// ```
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // ====================================================================
         // STEP 1: DEFINE TAB BORDER STYLES
         // ====================================================================
@@ -425,7 +425,9 @@ impl Model for TabModel {
 
         // Apply overall padding and any document-level styling
         // This creates spacing around the entire tabbed interface
-        doc_style.render(&result)
+        let mut view = View::new(doc_style.render(&result));
+        view.alt_screen = true;
+        view
     }
 }
 
@@ -469,7 +471,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // existing code. Common builder options include:
     // - .signal_handler(true) for Ctrl+C/Ctrl+Z support
     // - .mouse_support(true) for mouse input
-    // - .alt_screen(true) for full-screen applications
+    // - declarative `View::alt_screen` for full-screen applications
     let program = Program::<TabModel>::builder().build()?;
 
     // ========================================================================

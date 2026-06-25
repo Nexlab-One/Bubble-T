@@ -21,7 +21,7 @@
 //!
 //! ```rust
 //! use lipgloss::color::{Color, ANSIColor, AdaptiveColor, TerminalColor};
-//! use lipgloss::renderer::default_renderer;
+//! use lipgloss::output::default_output;
 //!
 //! // Basic hex color
 //! let red = Color("#ff0000".to_string());
@@ -42,7 +42,7 @@
 //! let complementary = lipgloss::color::complementary(&red);
 //! ```
 
-use crate::renderer::{ColorProfileKind, Renderer, default_renderer};
+use crate::output::{ColorProfileKind, OutputContext, default_output};
 use palette::color_difference::EuclideanDistance;
 use palette::{Clamp, FromColor, Hsv, Lab, Srgb};
 
@@ -60,16 +60,16 @@ use palette::{Clamp, FromColor, Hsv, Lab, Srgb};
 ///
 /// ```rust
 /// use lipgloss::color::{Color, TerminalColor};
-/// use lipgloss::renderer::default_renderer;
+/// use lipgloss::output::default_output;
 ///
 /// let color = Color("#ff0000".to_string());
-/// let token = color.token_default(); // Uses default renderer
+/// let token = color.token_default(); // Uses default OutputContext
 /// let (r, g, b, a) = color.rgba();   // Get RGBA components
 /// ```
 pub trait TerminalColor {
-    /// Returns the color token appropriate for the given renderer's profile.
+    /// Returns the color token appropriate for the given OutputContext's profile.
     ///
-    /// The returned token format depends on the renderer's color profile:
+    /// The returned token format depends on the OutputContext's color profile:
     /// - TrueColor: hex string like "#ff0000" or "#rrggbbaa"
     /// - ANSI256: numeric index like "196" (0-255 range)
     /// - ANSI: numeric index like "9" (0-15 range)
@@ -77,20 +77,20 @@ pub trait TerminalColor {
     ///
     /// # Arguments
     ///
-    /// * `r` - The renderer containing color profile information
+    /// * `r` - The OutputContext containing color profile information
     ///
     /// # Examples
     ///
     /// ```rust
     /// use lipgloss::color::{Color, TerminalColor};
-    /// use lipgloss::renderer::{Renderer, ColorProfileKind};
+    /// use lipgloss::output::{OutputContext, ColorProfileKind};
     ///
     /// let color = Color("#ff0000".to_string());
-    /// let mut renderer = Renderer::new();
-    /// renderer.set_color_profile(ColorProfileKind::ANSI256);
-    /// let token = color.token(&renderer); // Returns "196"
+    /// let mut ctx = OutputContext::default();
+    /// ctx.set_color_profile(ColorProfileKind::ANSI256);
+    /// let token = color.token(&ctx); // Returns "196"
     /// ```
-    fn token(&self, r: &Renderer) -> String;
+    fn token(&self, r: &OutputContext) -> String;
 
     /// Returns the RGBA color components.
     ///
@@ -118,10 +118,10 @@ pub trait TerminalColor {
     /// ```
     fn rgba(&self) -> (u32, u32, u32, u32);
 
-    /// Convenience method to resolve color using the default renderer.
+    /// Convenience method to resolve color using the default OutputContext.
     ///
-    /// This method provides a shorthand for `self.token(default_renderer())`
-    /// when you don't need to specify a custom renderer.
+    /// This method provides a shorthand for `self.token(&default_output())`
+    /// when you don't need to specify a custom OutputContext.
     ///
     /// # Examples
     ///
@@ -129,19 +129,19 @@ pub trait TerminalColor {
     /// use lipgloss::color::{Color, TerminalColor};
     ///
     /// let color = Color("#00ff00".to_string());
-    /// let token = color.token_default(); // Uses global default renderer
+    /// let token = color.token_default(); // Uses global default OutputContext
     /// ```
     fn token_default(&self) -> String
     where
         Self: Sized,
     {
-        self.token(default_renderer())
+        self.token(&default_output())
     }
 }
 
 // Convenience: allow using &str and String directly as colors in Style builders.
 impl TerminalColor for &str {
-    fn token(&self, r: &Renderer) -> String {
+    fn token(&self, r: &OutputContext) -> String {
         Color::from(*self).token(r)
     }
     fn rgba(&self) -> (u32, u32, u32, u32) {
@@ -150,7 +150,7 @@ impl TerminalColor for &str {
 }
 
 impl TerminalColor for String {
-    fn token(&self, r: &Renderer) -> String {
+    fn token(&self, r: &OutputContext) -> String {
         Color::from(self.as_str()).token(r)
     }
     fn rgba(&self) -> (u32, u32, u32, u32) {
@@ -376,7 +376,7 @@ const ANSI16_RGB: [(u8, u8, u8); 16] = [
 ///
 /// ```ignore
 /// use lipgloss::color::resolve_color_token_for_profile;
-/// use lipgloss::renderer::ColorProfileKind;
+/// use lipgloss::output::ColorProfileKind;
 ///
 /// let hex_red = "#ff0000";
 /// let ansi256_red = resolve_color_token_for_profile(hex_red, ColorProfileKind::ANSI256);
@@ -434,36 +434,36 @@ pub(crate) fn resolve_color_token_for_profile(s: &str, profile: ColorProfileKind
 }
 
 impl Color {
-    /// Returns the color token for a specific renderer with color profile mapping.
+    /// Returns the color token for a specific OutputContext with color profile mapping.
     ///
-    /// This method provides explicit control over which renderer to use for
+    /// This method provides explicit control over which OutputContext to use for
     /// color token generation, unlike the trait method which might have
     /// different behavior in different implementations.
     ///
     /// # Arguments
     ///
-    /// * `r` - The renderer to use for color profile determination
+    /// * `r` - The OutputContext to use for color profile determination
     ///
     /// # Examples
     ///
     /// ```rust
     /// use lipgloss::color::Color;
-    /// use lipgloss::renderer::{Renderer, ColorProfileKind};
+    /// use lipgloss::output::{OutputContext, ColorProfileKind};
     ///
     /// let color = Color("#ff0000".to_string());
-    /// let mut renderer = Renderer::new();
-    /// renderer.set_color_profile(ColorProfileKind::ANSI256);
-    /// let token = color.token_for_renderer(&renderer);
+    /// let mut ctx = OutputContext::default();
+    /// ctx.set_color_profile(ColorProfileKind::ANSI256);
+    /// let token = color.token_for_context(&ctx);
     /// ```
-    pub fn token_for_renderer(&self, r: &Renderer) -> String {
+    pub fn token_for_context(&self, r: &OutputContext) -> String {
         resolve_color_token_for_profile(&self.0, r.color_profile())
     }
 }
 
 // For TerminalColor trait, delegate to mapping-aware method.
 impl TerminalColor for Color {
-    fn token(&self, r: &Renderer) -> String {
-        self.token_for_renderer(r)
+    fn token(&self, r: &OutputContext) -> String {
+        self.token_for_context(r)
     }
 
     fn rgba(&self) -> (u32, u32, u32, u32) {
@@ -671,42 +671,39 @@ mod tests {
 
     #[test]
     fn test_color_token_profile_conversion() {
-        use crate::renderer::{ColorProfileKind, Renderer};
+        use crate::output::{ColorProfileKind, OutputContext};
 
         let hex_red = Color("#ff0000".to_string());
         let ansi_red = Color("9".to_string());
         let ansi256_red = Color("196".to_string());
 
         // Test hex color conversion to different profiles
-        let mut renderer = Renderer::new();
+        let mut ctx = OutputContext::default();
 
-        renderer.set_color_profile(ColorProfileKind::TrueColor);
-        assert_eq!(hex_red.token(&renderer), "#ff0000");
+        ctx.set_color_profile(ColorProfileKind::TrueColor);
+        assert_eq!(hex_red.token(&ctx), "#ff0000");
 
-        renderer.set_color_profile(ColorProfileKind::ANSI256);
-        assert_eq!(hex_red.token(&renderer), "196"); // Should convert to ANSI256
+        ctx.set_color_profile(ColorProfileKind::ANSI256);
+        assert_eq!(hex_red.token(&ctx), "196"); // Should convert to ANSI256
 
-        renderer.set_color_profile(ColorProfileKind::ANSI);
-        assert_eq!(hex_red.token(&renderer), "9"); // Should convert to ANSI16
+        ctx.set_color_profile(ColorProfileKind::ANSI);
+        assert_eq!(hex_red.token(&ctx), "9"); // Should convert to ANSI16
 
         // Test numeric ANSI color passthrough
-        renderer.set_color_profile(ColorProfileKind::ANSI256);
-        assert_eq!(ansi256_red.token(&renderer), "196"); // Should pass through
+        ctx.set_color_profile(ColorProfileKind::ANSI256);
+        assert_eq!(ansi256_red.token(&ctx), "196"); // Should pass through
 
-        renderer.set_color_profile(ColorProfileKind::ANSI);
-        assert_eq!(ansi_red.token(&renderer), "9"); // Should pass through
+        ctx.set_color_profile(ColorProfileKind::ANSI);
+        assert_eq!(ansi_red.token(&ctx), "9"); // Should pass through
 
         // Test TrueColor conversion of numeric colors
-        renderer.set_color_profile(ColorProfileKind::TrueColor);
-        assert_eq!(ansi_red.token(&renderer), "#ff0000"); // Should convert to hex
+        ctx.set_color_profile(ColorProfileKind::TrueColor);
+        assert_eq!(ansi_red.token(&ctx), "#ff0000"); // Should convert to hex
     }
 
     #[test]
     fn test_style_rendering_with_color_profiles() {
-        use crate::{
-            Style,
-            renderer::{ColorProfileKind, Renderer, set_default_renderer},
-        };
+        use crate::{ColorProfileKind, OutputContext, Style};
 
         let input = "hello";
         let test_cases = [
@@ -720,11 +717,12 @@ mod tests {
         ];
 
         for (profile, expected) in test_cases {
-            let mut renderer = Renderer::new();
-            renderer.set_color_profile(profile);
-            set_default_renderer(renderer);
+            let mut ctx = OutputContext::default();
+            ctx.set_color_profile(profile);
 
-            let style = Style::new().foreground(Color("#5A56E0".to_string()));
+            let style = Style::new()
+                .output_context(ctx)
+                .foreground(Color("#5A56E0".to_string()));
             let result = style.render(input);
 
             assert_eq!(
@@ -761,7 +759,7 @@ mod tests {
 
     #[test]
     fn test_comprehensive_rgba_validation() {
-        use crate::renderer::{ColorProfileKind, Renderer, set_default_renderer};
+        use crate::output::{ColorProfileKind, OutputContext, set_default_output};
 
         // Test basic Color types
         let basic_tests = [
@@ -786,10 +784,10 @@ mod tests {
         ];
 
         for (i, (profile, dark_bg, color, expected)) in basic_tests.iter().enumerate() {
-            let mut renderer = Renderer::new();
-            renderer.set_color_profile(*profile);
-            renderer.set_has_dark_background(*dark_bg);
-            set_default_renderer(renderer);
+            let mut ctx = OutputContext::default();
+            ctx.set_color_profile(*profile);
+            ctx.set_has_dark_background(*dark_bg);
+            set_default_output(ctx);
 
             let (r, g, b, _a) = color.rgba();
             // Our rgba() already returns 8-bit values, but Go's TestRGBA expects 8-bit RGB values
@@ -844,10 +842,10 @@ mod tests {
         ];
 
         for (i, (dark_bg, color, expected)) in adaptive_tests.iter().enumerate() {
-            let mut renderer = Renderer::new();
-            renderer.set_color_profile(ColorProfileKind::TrueColor);
-            renderer.set_has_dark_background(*dark_bg);
-            set_default_renderer(renderer);
+            let mut ctx = OutputContext::default();
+            ctx.set_color_profile(ColorProfileKind::TrueColor);
+            ctx.set_has_dark_background(*dark_bg);
+            set_default_output(ctx);
 
             let (r, g, b, _a) = color.rgba();
             let actual = (r << 16) + (g << 8) + b;
@@ -904,10 +902,10 @@ mod tests {
         ];
 
         for (i, (profile, color, expected)) in complete_tests.iter().enumerate() {
-            let mut renderer = Renderer::new();
-            renderer.set_color_profile(*profile);
-            renderer.set_has_dark_background(true);
-            set_default_renderer(renderer);
+            let mut ctx = OutputContext::default();
+            ctx.set_color_profile(*profile);
+            ctx.set_has_dark_background(true);
+            set_default_output(ctx);
 
             let (r, g, b, _a) = color.rgba();
             let actual = (r << 16) + (g << 8) + b;
@@ -962,10 +960,10 @@ mod tests {
             Dark: "#00FF00",  // Green for dark background
         };
 
-        // Test that RGBA uses the default renderer's background setting
+        // Test that RGBA uses the default OutputContext's background setting
         let (r, g, b, a) = adaptive.rgba();
 
-        // Should match either red or green depending on default renderer background
+        // Should match either red or green depending on default OutputContext background
         let is_red = (r, g, b) == (255, 0, 0);
         let is_green = (r, g, b) == (0, 255, 0);
 
@@ -1106,7 +1104,7 @@ mod tests {
 
     #[test]
     fn test_complete_function() {
-        use crate::renderer::ColorProfileKind;
+        use crate::output::ColorProfileKind;
 
         let ansi = Color("1".to_string());
         let ansi256 = Color("124".to_string());
@@ -1142,10 +1140,10 @@ mod tests {
             },
         };
 
-        // RGBA should use default renderer background to choose light/dark
+        // RGBA should use default OutputContext background to choose light/dark
         let (r, g, b, a) = complete_adaptive.rgba();
 
-        // Should match either red or green depending on default renderer background
+        // Should match either red or green depending on default OutputContext background
         let is_red = (r, g, b) == (255, 0, 0);
         let is_green = (r, g, b) == (0, 255, 0);
 
@@ -1182,7 +1180,7 @@ mod tests {
 pub struct NoColor;
 
 impl TerminalColor for NoColor {
-    fn token(&self, _r: &Renderer) -> String {
+    fn token(&self, _r: &OutputContext) -> String {
         String::new()
     }
 
@@ -1345,7 +1343,7 @@ impl Color {
 pub struct ANSIColor(pub u32);
 
 impl TerminalColor for ANSIColor {
-    fn token(&self, _r: &Renderer) -> String {
+    fn token(&self, _r: &OutputContext) -> String {
         self.0.to_string()
     }
 
@@ -1395,7 +1393,7 @@ pub struct AdaptiveColor {
 }
 
 impl TerminalColor for AdaptiveColor {
-    fn token(&self, r: &Renderer) -> String {
+    fn token(&self, r: &OutputContext) -> String {
         if r.has_dark_background() {
             Color::from(self.Dark).token(r)
         } else {
@@ -1404,8 +1402,8 @@ impl TerminalColor for AdaptiveColor {
     }
 
     fn rgba(&self) -> (u32, u32, u32, u32) {
-        // Use default renderer's background to pick, then use Color's logic for parsing
-        let color_str = if default_renderer().has_dark_background() {
+        // Use default OutputContext's background to pick, then use Color's logic for parsing
+        let color_str = if default_output().has_dark_background() {
             self.Dark
         } else {
             self.Light
@@ -1429,7 +1427,7 @@ impl TerminalColor for AdaptiveColor {
 ///
 /// ```rust
 /// use lipgloss::color::{CompleteColor, TerminalColor};
-/// use lipgloss::renderer::{Renderer, ColorProfileKind};
+/// use lipgloss::output::{OutputContext, ColorProfileKind};
 ///
 /// let red = CompleteColor {
 ///     TrueColor: "#FF0000".to_string(),    // Hex for true color terminals
@@ -1438,11 +1436,11 @@ impl TerminalColor for AdaptiveColor {
 /// };
 ///
 /// // Different renderers will use different values
-/// let mut true_color_renderer = Renderer::new();
+/// let mut true_color_renderer = OutputContext::default();
 /// true_color_renderer.set_color_profile(ColorProfileKind::TrueColor);
 /// assert_eq!(red.token(&true_color_renderer), "#FF0000");
 ///
-/// let mut ansi_renderer = Renderer::new();
+/// let mut ansi_renderer = OutputContext::default();
 /// ansi_renderer.set_color_profile(ColorProfileKind::ANSI);
 /// assert_eq!(red.token(&ansi_renderer), "9");
 /// ```
@@ -1458,7 +1456,7 @@ pub struct CompleteColor {
 }
 
 impl TerminalColor for CompleteColor {
-    fn token(&self, r: &Renderer) -> String {
+    fn token(&self, r: &OutputContext) -> String {
         match r.color_profile() {
             ColorProfileKind::TrueColor => self.TrueColor.clone(),
             ColorProfileKind::ANSI256 => self.ANSI256.clone(),
@@ -1719,7 +1717,7 @@ pub const TABLE_ROW_EVEN_BG: AdaptiveColor = AdaptiveColor {
 pub const TABLE_BORDER: AdaptiveColor = BORDER_PROMINENT;
 
 impl TerminalColor for CompleteAdaptiveColor {
-    fn token(&self, r: &Renderer) -> String {
+    fn token(&self, r: &OutputContext) -> String {
         if r.has_dark_background() {
             self.dark.token(r)
         } else {
@@ -1728,7 +1726,7 @@ impl TerminalColor for CompleteAdaptiveColor {
     }
 
     fn rgba(&self) -> (u32, u32, u32, u32) {
-        if default_renderer().has_dark_background() {
+        if default_output().has_dark_background() {
             self.dark.rgba()
         } else {
             self.light.rgba()
@@ -2136,7 +2134,7 @@ pub type CompleteFunc =
 /// # Examples
 /// ```rust
 /// use lipgloss::color::{Color, complete};
-/// use lipgloss::renderer::ColorProfileKind;
+/// use lipgloss::output::ColorProfileKind;
 ///
 /// let complete_fn = complete(ColorProfileKind::TrueColor);
 /// let ansi = Color("1".to_string());

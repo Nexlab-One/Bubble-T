@@ -1,7 +1,7 @@
 use lipgloss::{
-    Style,
+    ColorProfileKind, OutputContext, Style,
     color::{Color, TerminalColor},
-    renderer::{ColorProfileKind, Renderer, set_default_renderer},
+    set_default_output,
 };
 
 #[test]
@@ -13,18 +13,18 @@ fn test_hex_5a56e0_parsing() {
     println!("RGBA: ({}, {}, {}, {})", r, g, b, a);
 
     // Test with TrueColor profile
-    let mut renderer = Renderer::new();
-    renderer.set_color_profile(ColorProfileKind::TrueColor);
-    set_default_renderer(renderer);
+    let mut ctx = OutputContext::default();
+    ctx.set_color_profile(ColorProfileKind::TrueColor);
+    set_default_output(ctx);
 
     let style = Style::new().background(color.clone());
     let result = style.render("test");
     println!("TrueColor result: {}", result.escape_debug());
 
     // Check what color this maps to in ANSI profile (should be different with perceptual mapping)
-    let mut ansi_renderer = Renderer::new();
+    let mut ansi_renderer = OutputContext::default();
     ansi_renderer.set_color_profile(ColorProfileKind::ANSI);
-    set_default_renderer(ansi_renderer);
+    set_default_output(ansi_renderer);
 
     let ansi_style = Style::new().background(color);
     let ansi_result = ansi_style.render("test");
@@ -44,13 +44,13 @@ fn test_direct_ansi_codes() {
     println!("Testing direct ANSI codes 94 and 91");
 
     // Test with ANSI profile
-    let mut ansi_renderer = Renderer::new();
+    let mut ansi_renderer = OutputContext::default();
     ansi_renderer.set_color_profile(ColorProfileKind::ANSI);
-    set_default_renderer(ansi_renderer);
+    set_default_output(ansi_renderer);
 
     // Test color "94" (bright blue)
     let color_94 = Color::from("94");
-    let token_94 = color_94.token(lipgloss::renderer::default_renderer());
+    let token_94 = color_94.token(&lipgloss::output::default_output());
     println!("Color '94' token: {}", token_94);
 
     let style_94 = Style::new().foreground(Color::from("94"));
@@ -59,7 +59,7 @@ fn test_direct_ansi_codes() {
 
     // Test color "91" (bright red)
     let color_91 = Color::from("91");
-    let token_91 = color_91.token(lipgloss::renderer::default_renderer());
+    let token_91 = color_91.token(&lipgloss::output::default_output());
     println!("Color '91' token: {}", token_91);
 
     let style_91 = Style::new().foreground(Color::from("91"));
@@ -75,9 +75,9 @@ fn test_color_conversion_behavior() {
     let input = "hello";
 
     // Test with ANSI profile
-    let mut ansi_renderer = Renderer::new();
+    let mut ansi_renderer = OutputContext::default();
     ansi_renderer.set_color_profile(ColorProfileKind::ANSI);
-    set_default_renderer(ansi_renderer);
+    set_default_output(ansi_renderer);
 
     let style = Style::new().foreground(Color::from(hex_color));
     let result = style.render(input);
@@ -86,9 +86,9 @@ fn test_color_conversion_behavior() {
     println!("ANSI profile result (escaped): {}", result.escape_debug());
 
     // Test with ANSI256 profile
-    let mut ansi256_renderer = Renderer::new();
+    let mut ansi256_renderer = OutputContext::default();
     ansi256_renderer.set_color_profile(ColorProfileKind::ANSI256);
-    set_default_renderer(ansi256_renderer);
+    set_default_output(ansi256_renderer);
 
     let style = Style::new().foreground(Color::from(hex_color));
     let result = style.render(input);
@@ -102,12 +102,12 @@ fn test_color_conversion_behavior() {
     // Test color conversion directly
     let color = Color::from(hex_color);
 
-    let mut ansi_renderer = Renderer::new();
+    let mut ansi_renderer = OutputContext::default();
     ansi_renderer.set_color_profile(ColorProfileKind::ANSI);
     let ansi_token = color.token(&ansi_renderer);
     println!("Direct ANSI token: {}", ansi_token);
 
-    let mut ansi256_renderer = Renderer::new();
+    let mut ansi256_renderer = OutputContext::default();
     ansi256_renderer.set_color_profile(ColorProfileKind::ANSI256);
     let ansi256_token = color.token(&ansi256_renderer);
     println!("Direct ANSI256 token: {}", ansi256_token);

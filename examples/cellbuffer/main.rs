@@ -1,5 +1,5 @@
 use bubble_t::command::{batch, tick, window_size};
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit};
+use bubble_t::{Cmd, KeyMsg, Model, MouseMode, Msg, Program, View, quit};
 use crossterm::event::MouseEventKind;
 use std::time::Duration;
 
@@ -269,11 +269,11 @@ impl Model for CellBufferModel {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if !self.cells.ready() {
             // More visible loading message with some content
             let border = "─".repeat(78);
-            return format!(
+            return View::new(format!(
                 "┌{}┐\n\
                  │{:^78}│\n\
                  │{:^78}│\n\
@@ -284,21 +284,20 @@ impl Model for CellBufferModel {
                 "Initializing...",
                 "Move mouse to control ellipse, press any key to quit",
                 border
-            );
+            ));
         }
-        self.cells.to_string()
+        let mut view = View::new(self.cells.to_string());
+        view.alt_screen = true;
+        view.mouse_mode = MouseMode::AllMotion;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use bubble_t::MouseMotion;
-
     // Use alt screen; some terminals (e.g., Ghostty) only send full mouse
     // reporting while in the alternate screen buffer.
     let program = Program::<CellBufferModel>::builder()
-        .alt_screen(true)
-        .mouse_motion(MouseMotion::Cell)
         .signal_handler(true)
         .build()?;
 

@@ -1,7 +1,7 @@
 use std::env;
 use std::sync::{Mutex, OnceLock};
 
-use lipgloss::renderer::*;
+use lipgloss::output::*;
 
 // Global mutex to serialize env-var dependent tests.
 fn env_lock() -> &'static Mutex<()> {
@@ -33,8 +33,8 @@ fn detects_no_color_when_no_color_set() {
             env::set_var("NO_COLOR", "1");
         }
 
-        // Act: use a fresh renderer
-        let r = Renderer::new();
+        // Act: use a fresh OutputContext
+        let r = OutputContext::default();
         let profile = r.color_profile();
 
         // Assert
@@ -55,7 +55,7 @@ fn detects_truecolor_from_colorterm() {
             env::set_var("COLORTERM", "truecolor");
         }
 
-        let r = Renderer::new();
+        let r = OutputContext::default();
         assert_eq!(r.color_profile(), ColorProfileKind::TrueColor);
 
         unsafe {
@@ -72,7 +72,7 @@ fn detects_256_from_term() {
             env::set_var("TERM", "xterm-256color");
         }
 
-        let r = Renderer::new();
+        let r = OutputContext::default();
         assert_eq!(r.color_profile(), ColorProfileKind::ANSI256);
 
         unsafe {
@@ -89,7 +89,7 @@ fn detects_basic_color_from_term() {
             env::set_var("TERM", "xterm-color");
         }
 
-        let r = Renderer::new();
+        let r = OutputContext::default();
         assert_eq!(r.color_profile(), ColorProfileKind::ANSI);
 
         unsafe {
@@ -106,7 +106,7 @@ fn detects_dark_background_from_colorfgbg() {
         unsafe {
             env::set_var("COLORFGBG", "15;0");
         }
-        let r = Renderer::new();
+        let r = OutputContext::default();
         assert!(r.has_dark_background());
         unsafe {
             env::remove_var("COLORFGBG");
@@ -122,7 +122,7 @@ fn detects_light_background_from_colorfgbg() {
         unsafe {
             env::set_var("COLORFGBG", "0;7");
         }
-        let r = Renderer::new();
+        let r = OutputContext::default();
         assert!(!r.has_dark_background());
         unsafe {
             env::remove_var("COLORFGBG");
@@ -138,7 +138,7 @@ fn explicit_setters_override_detection() {
             env::set_var("TERM", "xterm-256color");
         }
 
-        let mut r = Renderer::new();
+        let mut r = OutputContext::default();
         // Explicitly override to NoColor and light background
         r.set_color_profile(ColorProfileKind::NoColor);
         r.set_has_dark_background(false);
@@ -153,18 +153,18 @@ fn explicit_setters_override_detection() {
 }
 
 #[test]
-fn default_renderer_replacement_copies_state() {
+fn default_output_replacement_copies_state() {
     with_env_lock(|| {
         clear_env(&["NO_COLOR", "COLORTERM", "TERM", "COLORFGBG"]);
 
         // Initialize default
-        let _ = default_renderer();
+        let _ = default_output();
 
         // Replace default with explicit settings
-        let mut custom = Renderer::new();
+        let mut custom = OutputContext::default();
         custom.set_color_profile(ColorProfileKind::ANSI256);
         custom.set_has_dark_background(false);
-        set_default_renderer(custom);
+        set_default_output(custom);
 
         assert_eq!(color_profile(), ColorProfileKind::ANSI256);
         assert!(!has_dark_background());
@@ -177,7 +177,7 @@ fn global_setters_always_mutate_default() {
         clear_env(&["NO_COLOR", "COLORTERM", "TERM", "COLORFGBG"]);
 
         // Force initialization of default
-        let _ = default_renderer();
+        let _ = default_output();
 
         // Mutate via helpers
         set_color_profile(ColorProfileKind::ANSI);

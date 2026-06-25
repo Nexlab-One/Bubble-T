@@ -40,7 +40,7 @@
 //!
 //! ```rust
 //! use bubble_t_widgets::viewport::{Model as ViewportModel, ViewportKeyMap};
-//! use bubble_t::{Model as BubbleTeaModel, Cmd, Msg};
+//! use bubble_t::{Model as BubbleTeaModel, Cmd, Msg, View};
 //! use lipgloss_extras::prelude::*;
 //!
 //! struct DocumentViewer {
@@ -63,12 +63,12 @@
 //!         self.viewport.update(msg)
 //!     }
 //!
-//!     fn view(&self) -> String {
-//!         format!(
+//!     fn view(&self) -> View {
+//!         View::new(format!(
 //!             "Document Viewer\n\n{}\n\nScroll: {:.1}%",
-//!             self.viewport.view(),
+//!             self.viewport.view().content,
 //!             self.viewport.scroll_percent() * 100.0
-//!         )
+//!         ))
 //!     }
 //! }
 //! ```
@@ -143,7 +143,7 @@
 //! - `visible_lines()`: Currently displayed content
 
 use crate::key::{self, KeyMap as KeyMapTrait};
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg};
+use bubble_t::{Cmd, Model as BubbleTeaModel, Msg, View, legacy_key_msg};
 use crossterm::event::KeyCode;
 use lipgloss_extras::lipgloss::width as lg_width;
 use lipgloss_extras::prelude::*;
@@ -2127,7 +2127,7 @@ impl BubbleTeaModel for Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::viewport::Model;
-    /// use bubble_t::Model as BubbleTeaModel;
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     ///
     /// let (viewport, cmd) = Model::init();
     /// assert_eq!(viewport.width, 80);
@@ -2185,7 +2185,7 @@ impl BubbleTeaModel for Model {
     /// This method integrates seamlessly with Bubble Tea's message-driven architecture:
     /// ```rust
     /// use bubble_t_widgets::viewport::Model;
-    /// use bubble_t::{Model as BubbleTeaModel, Msg};
+    /// use bubble_t::{Model as BubbleTeaModel, Msg, View};
     ///
     /// struct App {
     ///     viewport: Model,
@@ -2202,26 +2202,26 @@ impl BubbleTeaModel for Model {
     ///         None
     ///     }
     /// #
-    /// #   fn view(&self) -> String { self.viewport.view() }
+    /// #   fn view(&self) -> View { self.viewport.view() }
     /// }
     /// ```
     fn update(&mut self, msg: Msg) -> Option<Cmd> {
-        if let Some(key_msg) = msg.downcast_ref::<KeyMsg>() {
-            if self.keymap.page_down.matches(key_msg) {
+        if let Some(key_msg) = legacy_key_msg(&msg) {
+            if self.keymap.page_down.matches(&key_msg) {
                 self.page_down();
-            } else if self.keymap.page_up.matches(key_msg) {
+            } else if self.keymap.page_up.matches(&key_msg) {
                 self.page_up();
-            } else if self.keymap.half_page_down.matches(key_msg) {
+            } else if self.keymap.half_page_down.matches(&key_msg) {
                 self.half_page_down();
-            } else if self.keymap.half_page_up.matches(key_msg) {
+            } else if self.keymap.half_page_up.matches(&key_msg) {
                 self.half_page_up();
-            } else if self.keymap.down.matches(key_msg) {
+            } else if self.keymap.down.matches(&key_msg) {
                 self.scroll_down(1);
-            } else if self.keymap.up.matches(key_msg) {
+            } else if self.keymap.up.matches(&key_msg) {
                 self.scroll_up(1);
-            } else if self.keymap.left.matches(key_msg) {
+            } else if self.keymap.left.matches(&key_msg) {
                 self.scroll_left();
-            } else if self.keymap.right.matches(key_msg) {
+            } else if self.keymap.right.matches(&key_msg) {
                 self.scroll_right();
             }
         }
@@ -2244,12 +2244,12 @@ impl BubbleTeaModel for Model {
     ///
     /// ```rust
     /// use bubble_t_widgets::viewport::Model;
-    /// use bubble_t::Model as BubbleTeaModel;
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     ///
     /// let mut viewport = Model::new(20, 5);
     /// viewport.set_content("Line 1\nLine 2\nLine 3\nLine 4");
     ///
-    /// let output = viewport.view();
+    /// let output = viewport.view().content;
     /// assert!(output.contains("Line 1"));
     /// assert!(output.contains("Line 2"));
     /// assert!(output.contains("Line 3"));
@@ -2259,7 +2259,7 @@ impl BubbleTeaModel for Model {
     /// With styling applied:
     /// ```rust
     /// use bubble_t_widgets::viewport::Model;
-    /// use bubble_t::Model as BubbleTeaModel;
+    /// use bubble_t::{Model as BubbleTeaModel, View};
     /// use lipgloss_extras::prelude::*;
     ///
     /// let mut viewport = Model::new(20, 3)
@@ -2281,7 +2281,7 @@ impl BubbleTeaModel for Model {
     /// - **Style Application**: Applied lipgloss styles are rendered into the output
     /// - **Line Joining**: Multiple lines are joined with newline characters
     /// - **Frame Accounting**: Styling frame sizes are automatically considered
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         let visible = self.visible_lines();
         let mut output = String::new();
 
@@ -2292,8 +2292,7 @@ impl BubbleTeaModel for Model {
             output.push_str(line);
         }
 
-        // Apply style if set
-        self.style.render(&output)
+        View::new(self.style.render(&output))
     }
 }
 

@@ -8,7 +8,7 @@
 //! - Simple integer model state
 //! - Automatic program termination
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, quit, suspend};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, quit, suspend};
 use crossterm::event::{KeyCode, KeyModifiers};
 use std::time::Duration;
 
@@ -57,11 +57,11 @@ impl Model for SimpleModel {
 
     // View returns a string based on data in the model. That string which will be
     // rendered to the terminal.
-    fn view(&self) -> String {
-        format!(
+    fn view(&self) -> View {
+        View::new(format!(
             "Hi. This program will exit in {} seconds.\n\nTo quit sooner press ctrl-c, or press ctrl-z to suspend...\n",
             self.0
-        )
+        ))
     }
 }
 

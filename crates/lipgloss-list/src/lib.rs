@@ -322,7 +322,7 @@ impl fmt::Display for List {
 /// - This affects golden_complex_sublist test specifically
 ///
 /// USAGE:
-/// - Called by tree renderer for each child's indentation
+/// - Called by tree OutputContext for each child's indentation
 /// - Applied to continuation lines and nested content
 /// - NOT applied to the enumerator/bullet itself
 fn list_indenter(_children: &dyn Children, _index: usize) -> String {

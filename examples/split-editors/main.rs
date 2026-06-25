@@ -18,7 +18,7 @@
 //! - Ctrl+W: Remove current editor (minimum 1)
 //! - Esc/Ctrl+C: Quit
 
-use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, WindowSizeMsg, quit};
+use bubble_t::{Cmd, KeyMsg, Model, Msg, Program, View, WindowSizeMsg, quit};
 use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
 use bubble_t_widgets::key::{
     Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
@@ -796,7 +796,7 @@ impl Model for SplitEditorsModel {
         }
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         // Generate help text
         let help = self.help.view(self);
 
@@ -820,14 +820,15 @@ impl Model for SplitEditorsModel {
         let editor_views: Vec<&str> = views.iter().map(|s| s.as_str()).collect();
         let editors = join_horizontal(TOP, &editor_views);
 
-        format!("{}\n\n{}", editors, help)
+        let mut view = View::new(format!("{}\n\n{}", editors, help));
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::<SplitEditorsModel>::builder()
-        .alt_screen(true)
         .signal_handler(true)
         .build()?;
 

@@ -11,7 +11,7 @@
 //! key bindings and can toggle between mini and full help views.
 //! Uses bubble-t-widgets help and key modules for proper integration.
 
-use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, WindowSizeMsg, quit};
+use bubble_t::{Cmd, KeyMsg, Model as BubbleTeaModel, Msg, Program, View, WindowSizeMsg, quit};
 use bubble_t_widgets::help::{KeyMap as HelpKeyMap, Model as HelpModel};
 use bubble_t_widgets::key::{
     Binding, KeyMap, matches_binding, new_binding, with_help, with_keys_str,
@@ -159,9 +159,9 @@ impl BubbleTeaModel for Model {
         None
     }
 
-    fn view(&self) -> String {
+    fn view(&self) -> View {
         if self.quitting {
-            return "Bye!\n".to_string();
+            return View::new("Bye!\n");
         }
 
         let status = if self.last_key.is_empty() {
@@ -180,16 +180,20 @@ impl BubbleTeaModel for Model {
         let used_rows: isize = (status_lines as isize) + (help_lines as isize);
         let pad_rows = (total_block_rows - used_rows).max(0) as usize;
 
-        format!("\n{}{}{}", status, "\n".repeat(pad_rows), help_view)
+        let mut view = View::new(format!(
+            "\n{}{}{}",
+            status,
+            "\n".repeat(pad_rows),
+            help_view
+        ));
+        view.alt_screen = true;
+        view
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let program = Program::<Model>::builder()
-        .signal_handler(true)
-        .alt_screen(true)
-        .build()?;
+    let program = Program::<Model>::builder().signal_handler(true).build()?;
 
     program.run().await?;
     Ok(())

@@ -6,7 +6,7 @@
 
 use crate::color::Color;
 use crate::color::parse_hex_rgba;
-use crate::renderer::{ColorProfileKind, color_profile};
+use crate::output::{ColorProfileKind, color_profile};
 use crate::security::{safe_repeat, safe_str_repeat};
 use crate::style::{Style, properties::*};
 use crate::width_visible;
@@ -91,7 +91,7 @@ impl Style {
         let needs_profile = needs_text_styling || has_borders || margin_needs_color;
         let profile = if needs_profile {
             match &self.r {
-                Some(renderer) => renderer.color_profile(),
+                Some(ctx) => ctx.color_profile(),
                 None => color_profile(),
             }
         } else {
@@ -112,12 +112,29 @@ impl Style {
         let result = Self::join_lines(&final_lines);
 
         // Apply all margins as final step (matches Go implementation)
-        self.apply_margins(&result, profile)
+        let result = self.apply_margins(&result, profile);
+
+        if self.is_set(HYPERLINK_KEY)
+            && let Some(ref link) = self.hyperlink
+        {
+            let param_refs: [&str; 1];
+            let params: &[&str] = if self.hyperlink_params.is_empty() {
+                &[]
+            } else {
+                param_refs = [self.hyperlink_params.as_str()];
+                &param_refs
+            };
+            let open = ansi::hyperlink::set_hyperlink(link, params);
+            let close = ansi::hyperlink::reset_hyperlink(&[]);
+            return format!("{open}{result}{close}");
+        }
+
+        result
     }
 
     /// Returns true when text attributes or colors are configured.
     ///
-    /// Used to skip renderer/SGR work on the plain-text fast path.
+    /// Used to skip OutputContext/SGR work on the plain-text fast path.
     fn has_text_styling_keys(&self) -> bool {
         const ATTRS: [(u32, PropKey); 7] = [
             (ATTR_BOLD, BOLD_KEY),
@@ -467,7 +484,14 @@ impl Style {
                 if !codes.is_empty() {
                     codes.push(';');
                 }
-                codes.push_str(code);
+                if attr == ATTR_UNDERLINE
+                    && self.is_set(UNDERLINE_STYLE_KEY)
+                    && self.underline_style > 1
+                {
+                    codes.push_str(&format!("4:{}", self.underline_style));
+                } else {
+                    codes.push_str(code);
+                }
             }
         }
         if let Some(code) = self.foreground_sgr(profile) {

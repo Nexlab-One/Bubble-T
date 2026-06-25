@@ -12,8 +12,12 @@ description = "Style definitions for nice terminal layouts. The core of the lipg
 
 [dependencies]
 # Inherit dependency versions from the workspace `[workspace.dependencies]` table.
+ansi = { workspace = true }
+cellbuf = { workspace = true }
+colorprofile = { workspace = true }
 crossterm = { workspace = true }
 unicode-width = { workspace = true }
+image = { version = "0.25.9", default-features = false }
 palette = { workspace = true }
 strip-ansi-escapes = { workspace = true }
 
